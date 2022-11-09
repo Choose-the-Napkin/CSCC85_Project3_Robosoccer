@@ -1,0 +1,2 @@
+SUBDIRS = src
+CC = g++

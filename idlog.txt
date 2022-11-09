@@ -1,0 +1,784 @@
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Initialize blob data
+Current blob data
+Id=22, heading=[0.000000 0.000000], p=1.000000
+Id=21, heading=[0.000000 0.000000], p=1.000000
+Id=20, heading=[0.000000 0.000000], p=1.000000
+Id=19, heading=[0.000000 0.000000], p=1.000000
+Id=18, heading=[0.000000 0.000000], p=1.000000
+Id=7, heading=[0.000000 0.000000], p=1.000000
+After normalization
+Id=22, heading=[0.000000 0.000000], p=0.166667
+Id=21, heading=[0.000000 0.000000], p=0.166667
+Id=20, heading=[0.000000 0.000000], p=0.166667
+Id=19, heading=[0.000000 0.000000], p=0.166667
+Id=18, heading=[0.000000 0.000000], p=0.166667
+Id=7, heading=[0.000000 0.000000], p=0.166667
+Step=0.100000 Currently max_P is 0.166667 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.100000
+Current blob data
+Id=22, heading=[0.284382 -0.138435], p=0.008333
+Id=21, heading=[0.000000 0.000000], p=0.008333
+Id=20, heading=[0.114377 -0.145049], p=0.008333
+Id=19, heading=[3.602447 3.868037], p=0.008333
+Id=18, heading=[0.052129 -0.128759], p=0.008333
+Id=7, heading=[-0.639817 -0.160751], p=0.008333
+After normalization
+Id=22, heading=[0.284382 -0.138435], p=0.166663
+Id=21, heading=[0.000000 0.000000], p=0.166663
+Id=20, heading=[0.114377 -0.145049], p=0.166663
+Id=19, heading=[3.602447 3.868037], p=0.166663
+Id=18, heading=[0.052129 -0.128759], p=0.166663
+Id=7, heading=[-0.639817 -0.160751], p=0.166663
+Step=0.200000 Currently max_P is 0.166663 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.200000
+Current blob data
+Id=22, heading=[-4.274469 -0.042580], p=0.008333
+Id=21, heading=[-4.429948 0.484510], p=0.008333
+Id=20, heading=[-4.127787 2.077216], p=0.008333
+Id=19, heading=[-5.290197 -1.492871], p=0.008333
+Id=18, heading=[-5.481648 -0.998470], p=0.008333
+Id=7, heading=[0.033285 0.356037], p=0.008333
+After normalization
+Id=22, heading=[-4.274469 -0.042580], p=0.166663
+Id=21, heading=[-4.429948 0.484510], p=0.166663
+Id=20, heading=[-4.127787 2.077216], p=0.166663
+Id=19, heading=[-5.290197 -1.492871], p=0.166663
+Id=18, heading=[-5.481648 -0.998470], p=0.166663
+Id=7, heading=[0.033285 0.356037], p=0.166663
+Step=0.300000 Currently max_P is 0.166663 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.300000
+Current blob data
+Id=22, heading=[-4.274469 -0.042580], p=0.008333
+Id=21, heading=[-7.302217 1.853472], p=0.008333
+Id=20, heading=[-13.677901 0.739807], p=0.008333
+Id=19, heading=[-15.572352 1.648941], p=0.008333
+Id=18, heading=[-12.448222 16.115732], p=8.690776
+Id=7, heading=[-0.630633 -0.087394], p=0.008333
+After normalization
+Id=22, heading=[-4.274469 -0.042580], p=0.000954
+Id=21, heading=[-7.302217 1.853472], p=0.000954
+Id=20, heading=[-13.677901 0.739807], p=0.000954
+Id=19, heading=[-15.572352 1.648941], p=0.000954
+Id=18, heading=[-12.448222 16.115732], p=0.995229
+Id=7, heading=[-0.630633 -0.087394], p=0.000954
+Step=0.400000 Currently max_P is 0.995229 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.400000
+Current blob data
+Id=22, heading=[-17.951962 0.404978], p=0.000048
+Id=21, heading=[-7.633393 0.042351], p=0.000048
+Id=20, heading=[-7.555823 0.276278], p=0.000048
+Id=19, heading=[-6.831257 0.154961], p=0.000048
+Id=18, heading=[-7.281955 -14.498498], p=0.049761
+Id=7, heading=[0.527957 0.187733], p=0.000048
+After normalization
+Id=22, heading=[-17.951962 0.404978], p=0.000954
+Id=21, heading=[-7.633393 0.042351], p=0.000954
+Id=20, heading=[-7.555823 0.276278], p=0.000954
+Id=19, heading=[-6.831257 0.154961], p=0.000954
+Id=18, heading=[-7.281955 -14.498498], p=0.995209
+Id=7, heading=[0.527957 0.187733], p=0.000954
+Step=0.500000 Currently max_P is 0.995209 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.500000
+Current blob data
+Id=22, heading=[-17.951962 0.404978], p=0.000048
+Id=21, heading=[-12.978675 1.428953], p=0.000048
+Id=20, heading=[-15.097269 2.375260], p=0.000048
+Id=19, heading=[-14.089347 1.018831], p=0.000048
+Id=18, heading=[-14.930929 15.660945], p=0.049760
+Id=7, heading=[-0.206720 0.099789], p=0.000048
+After normalization
+Id=22, heading=[-17.951962 0.404978], p=0.000954
+Id=21, heading=[-12.978675 1.428953], p=0.000954
+Id=20, heading=[-15.097269 2.375260], p=0.000954
+Id=19, heading=[-14.089347 1.018831], p=0.000954
+Id=18, heading=[-14.930929 15.660945], p=0.995209
+Id=7, heading=[-0.206720 0.099789], p=0.000954
+Step=0.600000 Currently max_P is 0.995209 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.600000
+Current blob data
+Id=22, heading=[-17.951962 0.404978], p=0.000048
+Id=21, heading=[-15.284160 2.156633], p=0.000048
+Id=20, heading=[-15.391313 1.213054], p=0.000048
+Id=19, heading=[-13.647177 1.283291], p=0.000048
+Id=18, heading=[-15.640166 0.200746], p=0.049760
+Id=7, heading=[0.120447 -0.188948], p=0.000048
+After normalization
+Id=22, heading=[-17.951962 0.404978], p=0.000954
+Id=21, heading=[-15.284160 2.156633], p=0.000954
+Id=20, heading=[-15.391313 1.213054], p=0.000954
+Id=19, heading=[-13.647177 1.283291], p=0.000954
+Id=18, heading=[-15.640166 0.200746], p=0.995209
+Id=7, heading=[0.120447 -0.188948], p=0.000954
+Step=0.700000 Currently max_P is 0.995209 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.700000
+Current blob data
+Id=22, heading=[-17.951962 0.404978], p=0.000048
+Id=21, heading=[-15.118150 1.651711], p=0.000048
+Id=20, heading=[-15.610072 0.885895], p=0.000048
+Id=19, heading=[-14.483120 2.141686], p=0.000048
+Id=18, heading=[-16.679121 2.095103], p=0.049760
+Id=7, heading=[0.076385 -0.129673], p=0.000048
+After normalization
+Id=22, heading=[-17.951962 0.404978], p=0.000954
+Id=21, heading=[-15.118150 1.651711], p=0.000954
+Id=20, heading=[-15.610072 0.885895], p=0.000954
+Id=19, heading=[-14.483120 2.141686], p=0.000954
+Id=18, heading=[-16.679121 2.095103], p=0.995209
+Id=7, heading=[0.076385 -0.129673], p=0.000954
+Step=0.800000 Currently max_P is 0.995209 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.800000
+Current blob data
+Id=22, heading=[-53.247116 11.712009], p=0.916692
+Id=21, heading=[-15.275778 1.610570], p=0.000048
+Id=20, heading=[-10.186921 -4.342888], p=0.000048
+Id=19, heading=[-17.427169 -2.308634], p=0.000048
+Id=18, heading=[-17.211812 -11.774375], p=261.152102
+Id=7, heading=[-0.022844 -0.112386], p=0.000048
+After normalization
+Id=22, heading=[-53.247116 11.712009], p=0.003498
+Id=21, heading=[-15.275778 1.610570], p=0.000000
+Id=20, heading=[-10.186921 -4.342888], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-17.211812 -11.774375], p=0.996501
+Id=7, heading=[-0.022844 -0.112386], p=0.000000
+Step=0.900000 Currently max_P is 0.996501 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.900000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=9.713089
+Id=21, heading=[-20.725835 1.153034], p=0.000000
+Id=20, heading=[-16.584055 1.853229], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.811521 17.333416], p=67.816698
+Id=7, heading=[-0.197855 0.369520], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.125282
+Id=21, heading=[-20.725835 1.153034], p=0.000000
+Id=20, heading=[-16.584055 1.853229], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.811521 17.333416], p=0.874718
+Id=7, heading=[-0.197855 0.369520], p=0.000000
+Step=1.000000 Currently max_P is 0.874718 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=1.000000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.006264
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=288.470486
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999978
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.100000 Currently max_P is 0.999978 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999978
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999977
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.200000 Currently max_P is 0.999977 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.200000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000001
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.049999
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999958
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.300000 Currently max_P is 0.999958 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.300000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000001
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.049998
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999958
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.400000 Currently max_P is 0.999958 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.400000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000001
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.049998
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999958
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.500000 Currently max_P is 0.999958 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.500000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000001
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.049998
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000022
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999958
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.600000 Currently max_P is 0.999958 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.600000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000001
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=257.895538
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=1.000000
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.700000 Currently max_P is 1.000000 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.700000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.050000
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999980
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.800000 Currently max_P is 0.999980 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.800000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=151.721329
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=1.000000
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=1.900000 Currently max_P is 1.000000 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.900000
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.050000
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999980
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=2.000000 Currently max_P is 0.999980 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999980
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999999
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=2.100000 Currently max_P is 0.999999 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999999
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+After normalization
+Id=22, heading=[-38.269818 63.104029], p=0.000000
+Id=21, heading=[-10.989076 0.453406], p=0.000000
+Id=20, heading=[-16.008861 0.491998], p=0.000000
+Id=19, heading=[-17.427169 -2.308634], p=0.000000
+Id=18, heading=[-15.220758 5.141718], p=0.999999
+Id=7, heading=[0.460407 -0.454720], p=0.000000
+Step=0.000000 Currently max_P is 0.999999 out of 6 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Initialize blob data
+Current blob data
+Id=7, heading=[0.000000 0.000000], p=1.000000
+After normalization
+Id=7, heading=[0.000000 0.000000], p=0.999999
+Step=0.100000 Currently max_P is 0.999999 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.100000
+Current blob data
+Id=7, heading=[-0.116784 0.007868], p=0.050000
+After normalization
+Id=7, heading=[-0.116784 0.007868], p=0.999980
+Step=0.200000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.200000
+Current blob data
+Id=7, heading=[0.601932 -0.127073], p=0.049999
+After normalization
+Id=7, heading=[0.601932 -0.127073], p=0.999980
+Step=0.300000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.300000
+Current blob data
+Id=7, heading=[0.177273 -0.346051], p=0.049999
+After normalization
+Id=7, heading=[0.177273 -0.346051], p=0.999980
+Step=0.400000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.400000
+Current blob data
+Id=7, heading=[-0.947645 0.663919], p=0.049999
+After normalization
+Id=7, heading=[-0.947645 0.663919], p=0.999980
+Step=0.500000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.500000
+Current blob data
+Id=7, heading=[0.197507 0.024755], p=0.049999
+After normalization
+Id=7, heading=[0.197507 0.024755], p=0.999980
+Step=0.600000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.600000
+Current blob data
+Id=7, heading=[0.153337 -0.106868], p=0.049999
+After normalization
+Id=7, heading=[0.153337 -0.106868], p=0.999980
+Step=0.700000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.700000
+Current blob data
+Id=7, heading=[0.303402 -0.253645], p=0.049999
+After normalization
+Id=7, heading=[0.303402 -0.253645], p=0.999980
+Step=0.800000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.800000
+Current blob data
+Id=7, heading=[-0.018899 0.034467], p=0.049999
+After normalization
+Id=7, heading=[-0.018899 0.034467], p=0.999980
+Step=0.900000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.900000
+Current blob data
+Id=7, heading=[-0.432314 0.052478], p=0.049999
+After normalization
+Id=7, heading=[-0.432314 0.052478], p=0.999980
+Step=1.000000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=1.000000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.100000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999999
+Step=1.200000 Currently max_P is 0.999999 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.200000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.050000
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.300000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.300000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.400000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.400000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.500000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.500000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.600000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.600000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.700000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.700000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.800000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.800000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=1.900000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.900000
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.049999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+Step=2.000000 Currently max_P is 0.999980 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.999980
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999999
+Step=2.100000 Currently max_P is 0.999999 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=7, heading=[0.239067 -0.079981], p=0.999999
+After normalization
+Id=7, heading=[0.239067 -0.079981], p=0.999999
+Step=0.000000 Currently max_P is 0.999999 out of 1 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Initialize blob data
+Current blob data
+Id=35, heading=[0.000000 0.000000], p=1.000000
+Id=7, heading=[0.000000 0.000000], p=1.000000
+After normalization
+Id=35, heading=[0.000000 0.000000], p=0.500000
+Id=7, heading=[0.000000 0.000000], p=0.500000
+Step=0.100000 Currently max_P is 0.500000 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.100000
+Current blob data
+Id=35, heading=[1.530798 1.402969], p=0.025000
+Id=7, heading=[-0.354286 0.479752], p=0.025000
+After normalization
+Id=35, heading=[1.530798 1.402969], p=0.499990
+Id=7, heading=[-0.354286 0.479752], p=0.499990
+Step=0.200000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.200000
+Current blob data
+Id=35, heading=[1.530798 1.402969], p=0.025000
+Id=7, heading=[0.349823 -0.245523], p=0.025000
+After normalization
+Id=35, heading=[1.530798 1.402969], p=0.499990
+Id=7, heading=[0.349823 -0.245523], p=0.499990
+Step=0.300000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.300000
+Current blob data
+Id=35, heading=[1.530798 1.402969], p=0.025000
+Id=7, heading=[-0.269804 0.089075], p=0.025000
+After normalization
+Id=35, heading=[1.530798 1.402969], p=0.499990
+Id=7, heading=[-0.269804 0.089075], p=0.499990
+Step=0.400000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.400000
+Current blob data
+Id=35, heading=[1.530798 1.402969], p=0.025000
+Id=7, heading=[0.307781 -0.294186], p=0.025000
+After normalization
+Id=35, heading=[1.530798 1.402969], p=0.499990
+Id=7, heading=[0.307781 -0.294186], p=0.499990
+Step=0.500000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.500000
+Current blob data
+Id=35, heading=[1.530798 1.402969], p=0.025000
+Id=7, heading=[-0.274411 0.207017], p=0.025000
+After normalization
+Id=35, heading=[1.530798 1.402969], p=0.499990
+Id=7, heading=[-0.274411 0.207017], p=0.499990
+Step=0.600000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.600000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-0.339015 0.052628], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-0.339015 0.052628], p=0.499990
+Step=0.700000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.700000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[0.530437 0.196411], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[0.530437 0.196411], p=0.499990
+Step=0.800000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.800000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-0.134577 -0.020971], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-0.134577 -0.020971], p=0.499990
+Step=0.900000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=0.900000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[0.700652 -0.557655], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[0.700652 -0.557655], p=0.499990
+Step=1.000000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Forward drive, IDstep=1.000000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.100000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499999
+Id=7, heading=[-1.311862 0.512816], p=0.499999
+Step=1.200000 Currently max_P is 0.499999 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.200000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.300000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.300000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.400000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.400000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.500000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.500000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.600000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.600000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.700000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.700000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.800000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.800000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=1.900000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Reverse drive, IDstep=1.900000
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.025000
+Id=7, heading=[-1.311862 0.512816], p=0.025000
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+Step=2.000000 Currently max_P is 0.499990 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.499990
+Id=7, heading=[-1.311862 0.512816], p=0.499990
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499999
+Id=7, heading=[-1.311862 0.512816], p=0.499999
+Step=2.100000 Currently max_P is 0.499999 out of 2 candidate blobs
+AI_main() called for ai at 0x13a95c0 and blob list at 0x3812890
+State is 0, self-id in progress...
+Current blob data
+Id=35, heading=[9.453029 -74.816723], p=0.499999
+Id=7, heading=[-1.311862 0.512816], p=0.499999
+After normalization
+Id=35, heading=[9.453029 -74.816723], p=0.499999
+Id=7, heading=[-1.311862 0.512816], p=0.499999
+Step=0.000000 Currently max_P is 0.499999 out of 2 candidate blobs
+
