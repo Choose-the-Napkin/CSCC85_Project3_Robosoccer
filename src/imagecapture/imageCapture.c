@@ -48,23 +48,24 @@
 #include "../roboAI.h"
 #include <time.h>
 
+//#define __DEBUG
 #define MIN_BLOB_SIZE 500         // Minimum blob size allowed by blobDetect2()
 
 // ** DO NOT MODIFY THESE GLOBAL VARIABLE DEFINITIONS **
 // OpenGL data
-GLuint texture;                   // GL texture identifier 
-int windowID;                     // Glut window ID (for display)
-int Win[2];                       // window (x,y) size
-int sx,sy;		                  // Image size - set by the webcam init function
+GLuint texture;			  // GL texture identifier 
+int windowID;               	  // Glut window ID (for display)
+int Win[2];                 	  // window (x,y) size
+int sx,sy;		          // Image size - set by the webcam init function
 char line[1024];
 int heightAdj=1;                  // Perspective adjustment, toggle on'off with '1' in the U.I.
 
 // Webcam image data and processed image components
-struct vdIn *webcam;                  // The input video device
-struct image *proc_im;                // Image structure for processing
-unsigned char bigIm[1024*1024*3];     // Big texture to hold our image for OpenGL
-unsigned char *fieldIm=NULL;          // Unwarped field 
-unsigned char *bgIm=NULL;             // Background image
+struct vdIn *webcam;			      // The input video device
+struct image *proc_im;			      // Image structure for processing
+unsigned char bigIm[1024*1024*3];	  // Big texture to hold our image for OpenGL
+unsigned char *fieldIm; 	          // Unwarped field 
+unsigned char *bgIm;		          // Background image
 unsigned char *frame_buffer=NULL;     // Frame Buffer - camera frames are stored here
 
 // Global image processing parameters
@@ -292,6 +293,19 @@ void FrameGrabLoop(void)
     free(U);
     free(s);
     free(V);
+
+#ifdef __DEBUG    
+    fprintf(stderr,"Homography Matrix:\n");
+    fprintf(stderr,"%lf   %lf   %lf\n",*(H),*(H+1),*(H+2));
+    fprintf(stderr,"%lf   %lf   %lf\n",*(H+3),*(H+4),*(H+5));
+    fprintf(stderr,"%lf   %lf   %lf\n",*(H+6),*(H+7),*(H+8));
+    fprintf(stderr,"_______________________________________\n");
+    fprintf(stderr,"Inverse Homography Matrix:\n");
+    fprintf(stderr,"%lf   %lf   %lf\n",*(Hinv),*(Hinv+1),*(Hinv+2));
+    fprintf(stderr,"%lf   %lf   %lf\n",*(Hinv+3),*(Hinv+4),*(Hinv+5));
+    fprintf(stderr,"%lf   %lf   %lf\n",*(Hinv+6),*(Hinv+7),*(Hinv+8));
+    fprintf(stderr,"_______________________________________\n");    
+#endif
     
     // Get background image - Here we are using image data structures that store pixel data as dloating point
     // values - it's necessary overhead because we are computing an average over frames, can't be done in
@@ -326,6 +340,12 @@ void FrameGrabLoop(void)
     fwrite(bgIm,sx*sy*3*sizeof(unsigned char),1,f);
     fclose(f);
         
+    // Debug data - dump the background image to PPM:
+#ifdef __DEBUG
+    t2=imageFromBuffer(bgIm,sx,sy,3);
+    writePPM("Background.ppm",t2);
+    deleteImage(t2);
+#endif
    }
   }
 
@@ -345,10 +365,42 @@ void FrameGrabLoop(void)
    // - Display the blobs along with information passed back from
    //   the AI processing code.
    //////////////////////////////////////////////////////////////////
+#ifdef __DEBUG
+    t3=imageFromBuffer(frame_buffer,sx,sy,3);
+    writePPM("BeforeBGSubtract3.ppm",t3);
+    deleteImage(t3);
+#endif      
 
-   bgSubtract3();        
+    bgSubtract3();
+    
+// HERE: We may want to do a bit of filtering and denoising - 
+
+#ifdef __DEBUG
+    t3=imageFromBuffer(frame_buffer,sx,sy,3);
+    writePPM("AfterBGSubtract3.ppm",t3);
+    deleteImage(t3);
+#endif      
+    
    fieldUnwarp2();
+
+#ifdef __DEBUG
+   t2=imageFromBuffer(fieldIm,sx,sy,3);
+   writePPM("FieldIm.ppm",t2);
+   deleteImage(t2);
+#endif   
+      
+/////////////////////////////////////
+// TESTING - load a fixed ppm image (we created from the debug code above) so we can see what the blobDetect function is doing   
+//   t2=readPPM("FieldIm_test.ppm");
+//   tmp=bufferFromIm(t2);
+//   memcpy(fieldIm,tmp,sx*sy*3*sizeof(unsigned char));
+//   free(tmp);
+//   deleteImage(t2);
+/////////  END TESTING CODE  ////////
+
    labIm=blobDetect2(&blobs,&nblobs);
+//   labIm=NULL;            // To test without blob detection
+//   blobs=NULL;
       
    // At this point we have a bunch of blobs which should have fairly uniform hue, connected, and not background.
    // What happens next depends on the status of the doAI variable - initially set to zero. If it's still zero,
@@ -553,7 +605,10 @@ void fieldUnwarp2()
     rgb2hsv(R/255.0,G/255.0,B/255.0,&Hu,&S,&V);
     vx=cos(Hu);
     vy=sin(Hu);     
-        
+    
+    // Sanity checking - see if rgb2hsv is doing the right thing colour mapping.
+ //   hsv2rgb(Hu,1.0,1.0,&R,&G,&B);
+    
     // Greedily map this pixel to one of the reference hues, if it's close enough
     dp0=(mx0*vx)+(my0*vy);
     dp1=(mx1*vx)+(my1*vy);
@@ -596,6 +651,23 @@ void fieldUnwarp2()
       // based on the matched hue it uses the corresponding bot's height adjustment data. This leaves the ball alone.
       // The adjustment is toggle-able via the U.I. use the '1' key to toggle this adjustment on/off
 
+      // Old adjustment using middle and bottom of field   
+/*
+      if (huIdx==0)
+      {
+       dmax=(sy/2)-adj_Y[0][0];
+       dmin=sy-adj_Y[1][0];
+       pink=(dmax-dmin)/(sy/2);
+       adj=dmin+((sy-py)*pink);
+      }
+      else if (huIdx==1)
+      {
+       dmax=(sy/2)-adj_Y[0][1];
+       dmin=sy-adj_Y[1][1];
+       pink=(dmax-dmin)/(sy/2);
+       adj=dmin+((sy-py)*pink);
+      }      
+*/
       // Adjustment based on alignment with the ball - first sample is close to the top of the field, second sample is at the bottom,
       // bots should be fully within the field!
       if (huIdx==0)
@@ -900,6 +972,9 @@ struct image *blobDetect2(struct blob **blob_list, int *nblobs)
  // Assumed: Pixels in the input fieldIm that have non-zero RGB values are foreground
  labIm=newImage(sx,sy,1);				       // 1-layer labels image
  tmpIm=imageFromBuffer(fieldIm,sx,sy,3);
+#ifdef __DEBUG
+ writePPM("tmpIm.ppm",tmpIm);
+#endif 
 
  // Filter background subtracted, saturation thresholded map to make smoother blobs
  tmpIm2=convolve_x(tmpIm,kern);
@@ -1183,6 +1258,34 @@ struct image *blobDetect2(struct blob **blob_list, int *nblobs)
  deleteKernel(kern);
  free(pixStack);
  
+#ifdef __DEBUG
+ unsigned char *tmpCol=(unsigned char *)calloc(lab*3,sizeof(unsigned char));
+ unsigned char *tmpPic=(unsigned char *)calloc(sx*sy*3,sizeof(unsigned char));
+ int ll;
+ for (int ii=0; ii<lab; ii++)
+ {
+     *(tmpCol+(3*ii)+0)=(unsigned char)(254.0*drand48());
+     *(tmpCol+(3*ii)+1)=(unsigned char)(254.0*drand48());
+     *(tmpCol+(3*ii)+2)=(unsigned char)(254.0*drand48());
+ }
+ for (int jj=0; jj<labIm->sy; jj++)
+     for (int ii=0; ii<labIm->sx; ii++)
+     {
+        ll=*(labIm->layers[0]+ii+(jj*labIm->sx));
+        if (ll>0)
+        {
+            *(tmpPic+((ii+(jj*sx))*3)+0)=*(tmpCol+(3*ll)+0);
+            *(tmpPic+((ii+(jj*sx))*3)+1)=*(tmpCol+(3*ll)+1);
+            *(tmpPic+((ii+(jj*sx))*3)+2)=*(tmpCol+(3*ll)+2);            
+        }
+     }
+ tmpIm2=imageFromBuffer(tmpPic,sx,sy,3);
+ writePPM("Labels.ppm",tmpIm2);
+ deleteImage(tmpIm2);
+ free(tmpPic);
+ free(tmpCol);
+#endif 
+ 
  return(labIm);
 } 
 
@@ -1205,7 +1308,7 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
  //////////////////////////////////////////////////////////////////////////////////////////////
 
  int i,j;
- struct blob *p;
+ struct blob *p, *q;
  struct image *blobIm;
  double cR,cG,cB;
  double *labRGB;
@@ -1234,7 +1337,11 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
  }
 
  blobIm=imageFromBuffer(fieldIm,sx,sy,3);
-  
+ 
+#ifdef __DEBUG
+ writePPM("BlobIm_start.ppm",blobIm);
+#endif
+ 
  // Uniform coloured blobs - colour is average colour of the corresponding region in the image  
 #pragma omp parallel for schedule(dynamic,32) private(i,j)
  for (j=0;j<sy;j++)
@@ -1248,6 +1355,10 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
     *(blobIm->layers[2]+i+(j*blobIm->sx))=*(labRGB+(3*lab)+2);
    }
   }
+
+#ifdef __DEBUG
+ writePPM("BlobIm_blobs.ppm",blobIm);
+#endif
     
  // Draw bounding boxes & cross-hairs 
  p=list;
@@ -1268,10 +1379,38 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
     cR=255;
     cG=255;
     cB=0;
-    if (got_Y==1&&ref_Y[0]<-1e5)
+    if (got_Y==1&&ref_Y[0]<-1e5)        // Catch all reference values ar top
+    {
      ref_Y[0]=p->cy;
-    if (got_Y==2&&ref_Y[1]<-1e5)
+     q=list;
+     while (q!=NULL)
+     {
+      if (q->idtype==1)
+       if (adj_Y[0][0]<-1e5)
+        adj_Y[0][0]=q->cy;
+      if (q->idtype==2)
+       if (adj_Y[0][1]<-1e5)
+        adj_Y[0][1]=q->cy;
+      q=q->next;
+     }
+     if (adj_Y[0][1]<-1e-5) adj_Y[0][1]=adj_Y[0][0];
+    }
+    if (got_Y==2&&ref_Y[1]<-1e5)        // Catch all reference values at bottom
+    {
      ref_Y[1]=p->cy;
+     q=list;
+     while (q!=NULL)
+     {
+      if (q->idtype==1)
+       if (adj_Y[1][0]<-1e5)
+        adj_Y[1][0]=q->cy;
+      if (q->idtype==2)
+       if (adj_Y[1][1]<-1e5)
+        adj_Y[1][1]=q->cy;
+      q=q->next;
+     }
+     if (adj_Y[1][1]<-1e-5) adj_Y[1][1]=adj_Y[1][0];
+    }
    }
    else if (p->idtype==1)	// This blob is our own bot
    {
@@ -1286,10 +1425,6 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
     cR=32;
     cG=255;                     // Green box around our bot
     cB=32;
-    if (got_Y==1&&adj_Y[0][0]<-1e5)
-     adj_Y[0][0]=p->cy;
-    if (got_Y==2&&adj_Y[1][0]<-1e5)
-     adj_Y[1][0]=p->cy;
    }
    else if (p->idtype==2)	// This blob is the opponent
    {
@@ -1304,10 +1439,6 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
     cR=255;
     cG=32;                      // Purple box around opponent
     cB=255;
-    if (got_Y==1&&adj_Y[0][1]<-1e5)
-     adj_Y[0][1]=p->cy;
-    if (got_Y==2&&adj_Y[1][1]<-1e5)
-     adj_Y[1][1]=p->cy;
    }
    drawBox(p->x1-1,p->y1,p->x2-1,p->y2,cR,cG,cB,blobIm);
    drawBox(p->x1+1,p->y1,p->x2+1,p->y2,cR,cG,cB,blobIm);
@@ -1329,22 +1460,39 @@ struct image *renderBlobs(struct image *labels, struct blob *list)
   }
   p=p->next;
  }
+
+#ifdef __DEBUG
+ writePPM("BlobIm_graphics.ppm",blobIm);
+#endif
   
- if (got_Y==2&&ref_Y[1]>-1e5)
+ if (got_Y==2&&ref_Y[1]>-1e5&&ref_Y[0]>-1e5&&adj_Y[0][0]>-1e5&&adj_Y[0][1]>-1e5&&adj_Y[1][0]>-1e5&&adj_Y[1][1]>-1e5)
  {
   fprintf(stderr,"Saving offsets for perspective correction.\n");
   fprintf(stderr,"Adjustment amounts for bot 1\n");
-  fprintf(stderr,"At upper-field (h=%f), adj=%f\n",ref_Y[0],ref_Y[0]-adj_Y[0][0]);
-  fprintf(stderr,"At lower-field (h=%f), adj=%f\n",ref_Y[1],ref_Y[1]-adj_Y[1][0]);
+  fprintf(stderr,"At upper-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[0],adj_Y[0][0],ref_Y[0]-adj_Y[0][0]);
+  fprintf(stderr,"At lower-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[1],adj_Y[1][0],ref_Y[1]-adj_Y[1][0]);
   fprintf(stderr,"Adjustment amounts for bot 2\n");
-  fprintf(stderr,"At upper-field (h=%f), adj=%f\n",ref_Y[0],ref_Y[0]-adj_Y[0][1]);
-  fprintf(stderr,"At lower-field (h=%f), adj=%f\n",ref_Y[1],ref_Y[1]-adj_Y[1][1]);
+  fprintf(stderr,"At upper-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[0],adj_Y[0][1],ref_Y[0]-adj_Y[0][1]);
+  fprintf(stderr,"At lower-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[1],adj_Y[1][1],ref_Y[1]-adj_Y[1][1]);
   f=fopen("offsets.dat","w");
   fwrite(&adj_Y[0][0],4*sizeof(double),1,f);
   fwrite(&ref_Y[0],2*sizeof(double),1,f);
   fclose(f);
   got_Y=3;				// Complete! we have offset calibration data
   doAI=0;				// End calibration loop
+ }
+ else if (got_Y==2&&ref_Y[1]>-1e5)
+ {
+  fprintf(stderr,"Something is amiss - should have captured calibration data for the bots, but some values are missing.\n");
+  fprintf(stderr,"Please try the calibration process again\n");
+  got_Y=0;
+  ref_Y[0]=-1e6;
+  ref_Y[1]=-1e6;
+  adj_Y[0][0]=-1e6;
+  adj_Y[0][1]=-1e6;
+  adj_Y[1][0]=-1e6;
+  adj_Y[1][1]=-1e6;
+  doAI=0;
  }
 
  free(labRGB);
@@ -1612,6 +1760,12 @@ void kbHandler(unsigned char key, int x, int y)
    fread(&ref_Y[0],2*sizeof(double),1,f);
    fclose(f);
    fprintf(stderr,"Read offset data from file\n");
+   fprintf(stderr,"Adjustment amounts for bot 1\n");
+   fprintf(stderr,"At upper-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[0],adj_Y[0][0],ref_Y[0] -adj_Y[0][0]);
+   fprintf(stderr,"At lower-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[1],adj_Y[1][0],ref_Y[1]-adj_Y[1][0]);
+   fprintf(stderr,"Adjustment amounts for bot 2\n");
+   fprintf(stderr,"At upper-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[0],adj_Y[0][1],ref_Y[0]-adj_Y[0][1]);
+   fprintf(stderr,"At lower-field (h=%f), bot is at %f, adjustment=%f\n",ref_Y[1],adj_Y[1][1],ref_Y[1]-adj_Y[1][1]);
    got_Y=3;
    if (doAI==2) doAI=0;
   }
@@ -1853,4 +2007,3 @@ void closeCam(struct vdIn *videoIn)
 /*********************************************************************
 End of Webcam manipulation code
 *********************************************************************/
-

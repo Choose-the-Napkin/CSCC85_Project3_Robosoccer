@@ -231,7 +231,7 @@ struct blob *id_coloured_blob2(struct RoboAI *ai, struct blob *blobs, int col)
  }
  
  maxfit=.025;                                             // Minimum fitness threshold
- mincos=.65;                                              // Threshold on colour angle similarity
+ mincos=.90;                                              // Threshold on colour angle similarity
  maxgray=.25;                                             // Maximum allowed difference in colour
                                                           // to be considered gray-ish (as a percentage
                                                           // of intensity)
