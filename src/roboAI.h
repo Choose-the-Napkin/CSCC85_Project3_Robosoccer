@@ -36,6 +36,42 @@
 
 #define NOISE_VAR 5.0                   // Minimum amount of displacement considered NOT noise (in pixels).
 
+// ============== Our own defines ==============
+#define MOTOR_DRIVE_LEFT MOTOR_A
+#define MOTOR_DRIVE_RIGHT MOTOR_B
+#define MOTOR_SHOOT_RETRACT MOTOR_B
+
+#define TOUCH_SENSOR_INPUT PORT_3
+#define COLOUR_SENSOR_INPUT PORT_3
+
+#define NUMBER_PENALTY_STATES 7
+#define STATE_P_start 100
+#define STATE_P_hold 101
+#define STATE_P_alignWithOffset 102
+#define STATE_P_driveToOffset 103
+#define STATE_P_alignWithBall 104
+#define STATE_P_driveCarefullyUntilShot 105
+#define STATE_P_done 106
+
+#define NUMBER_OF_EVENTS 6
+#define EVENT_ballAndCarSeen 0
+#define EVENT_atWantedPosition 1
+#define EVENT_allignedWithPosition 2
+#define EVENT_ballIsInCage 3
+#define EVENT_shootingMechanismRetracted 4
+#define EVENT_ballCagedAndCanShoot 5
+
+// ============== Variables ==============
+int TRANSITION_TABLE[300][NUMBER_OF_EVENTS * 2]; // %2==0 means we don't want event to happen, odd means we do
+//int iteration_c = 1;
+int wanted_posX = -1;
+int wanted_posY = -1;
+int takeShot = 0;
+int lastAppliedToRetract = -1;
+// TODO: Add event caching
+
+// ============== end ==============
+
 struct AI_data{
 	// This data structure is used to hold all data relevant to the state of the AI.
 	// This includes, of course, the current state, as well as the status of
@@ -150,5 +186,9 @@ struct displayList *clearDP(struct displayList *head);
    Add headers for your own functions implementing the bot's soccer
    playing functionality below.
 *****************************************************************************/
+
+int checkEventActive(struct RoboAI *ai, int event);
+void changeMachineState(struct RoboAI *ai, int new_state);
+int handleStateActions(struct RoboAI *ai); // Returns 1 if we want to asynchronously shoot
 
 #endif

@@ -751,7 +751,44 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   }
   
   // Initialize BotInfo structures
-   
+
+  // Start by creating transition table
+  // TODO: move this to a seperate config file
+  for (int i = 0; i < 300; i++){
+    for (int j = 0; j < NUMBER_OF_EVENTS; j++) TRANSITION_TABLE[i][j] = -1;
+  }
+  
+  if (ai->st.state>=200){
+
+  }else if (ai->st.state>=100){
+    // T_T[STATE][EVENT * 2 + wantedToBeTrue] = newState
+    // State 101
+    TRANSITION_TABLE[STATE_P_hold][EVENT_ballAndCarSeen * 2 + 1] = STATE_P_alignWithOffset;
+
+    // State 102
+    TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_allignedWithPosition * 2 + 1] = STATE_P_driveToOffset;
+
+    // State 103
+    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_allignedWithPosition * 2 + 0] = STATE_P_alignWithOffset;
+    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_atWantedPosition * 2 + 1] = STATE_P_alignWithBall;
+
+    // State 104
+    TRANSITION_TABLE[STATE_P_alignWithBall][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    TRANSITION_TABLE[STATE_P_alignWithBall][EVENT_allignedWithPosition * 2 + 1] = STATE_P_driveCarefullyUntilShot;
+
+    // State 105
+    TRANSITION_TABLE[STATE_P_driveCarefullyUntilShot][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    TRANSITION_TABLE[STATE_P_driveCarefullyUntilShot][EVENT_allignedWithPosition * 2 + 0] = STATE_P_alignWithBall;
+    
+    //TRANSITION_TABLE[STATE_P_driveAndShoot][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_wait;
+    //TRANSITION_TABLE[STATE_P_driveAndShoot][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_wait;
+    // We set to 100 by hand at is it the end of program once we think we've made the shot
+
+    }else{
+
+    }
  }
  else
  {
@@ -777,6 +814,52 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 //  track_agents(ai,blobs);		// Currently, does nothing but endlessly track
  }
 
+ // Update state based on transition
+ for (int i = 0; i < NUMBER_OF_EVENTS * 2; i++){
+    if (TRANSITION_TABLE[ai->st.state][i] > -1){
+        if (checkEventActive(ai, i)){
+            changeMachineState(ai, TRANSITION_TABLE[ai->st.state][i])
+        }
+    }
+ }
+
+ // Call function for state action
+ handleStateActions();
+
+ // Handle shooting mechanism
+ // TODO: Move to helper
+ if (takeShot){
+    // Keep pulling until not retract
+    if (checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)){
+        if (lastAppliedToRetract != 2){
+            lastAppliedToRetract = 2;
+            BT_motor_port_start(MOTOR_SHOOT_RETRACT, 1);
+        }
+    }else{
+        takeShot = 0;
+        lastAppliedToRetract = 0;
+        BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+
+        if (ai->st.state>=100 && ai->st.state<100){ // Penalty mode, halt the program
+            changeMachineState(ai, STATE_P_done);
+        }      
+    }
+
+ }else{ // Maintain retracted
+    if (checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)){
+        if (lastAppliedToRetract != 0){
+            lastAppliedToRetract = 0;
+            BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+        }
+    }else {
+        if (lastAppliedToRetract != 1){
+            lastAppliedToRetract = 1;
+            BT_motor_port_start(MOTOR_SHOOT_RETRACT, 0.5);
+        }
+    }
+ }
+
+
 }
 
 /**********************************************************************************
@@ -793,4 +876,68 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
  there.
 **********************************************************************************/
 
+int checkEventActive(struct RoboAI *ai, int event){
+    int wantedResult = event % 2;
+    int checkingEvent = (event - wantedResult) / 2;
+    int result = 0; // set to 1 if event happens
 
+    if (checkingEvent == EVENT_ballAndCarSeen){
+        result = ai->st.self != NULL && ai->st.ba != NULL;
+    }else if (checkingEvent == EVENT_atWantedPosition){
+        // Move his check to here
+
+    }else if (checkingEvent == EVENT_allignedWithPosition){
+        // Move his check to here
+
+    }else if (checkingEvent == EVENT_ballIsInCage){
+        // Read colour sensor reflectance
+        int RGB[3];
+        BT_read_colour_sensor_RGB(COLOUR_SENSOR_INPUT, RGB);
+        result = RGB[2] > 20;
+
+    }else if (checkEvent == EVENT_shootingMechanismRetracted){
+        result = BT_read_touch_sensor(TOUCH_SENSOR_INPUT);
+
+    }else if (checkingEvent == EVENT_ballCagedAndCanShoot){
+        result = checkEventActive(ai, EVENT_ballIsInCage * 2 + 1) && checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)
+    }
+
+    return (result == wantedResult);
+}
+
+void changeMachineState(struct RoboAI *ai, int new_state){
+    // Check for special conditions (stop motors etc)
+    
+    ai->st.state = new_state;
+    // BT_all_stop(1);
+    // Call custom function
+}
+
+
+void handleStateActions(struct RoboAI *ai){
+    // Returns 1 if we want to asynchronously shoot
+    int state = ai->st.state;
+    if (state >= 200){
+
+    } else if (state >= 100){
+        if (state == STATE_P_wait) return;
+        else if (state == STATE_P_alignWithOffset){
+            // Set wantedX and wantedY
+            // call Align(wantedX, wantedY)
+        }else if (state == STATE_P_driveToOffset){
+            // Drive at 0.35
+        } else if (state == STATE_P_alignWithBall){
+            // Set wantedX and wantedY
+            // call Align(wantedX, wantedY)
+
+        }else if (state == STATE_P_driveCarefullyUntilShot){
+            // Drive at 0.075
+            if (checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1)){
+                takeShot = 1;
+            }
+        }
+
+    } else{
+
+    }
+} 
