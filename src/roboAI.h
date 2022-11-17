@@ -68,6 +68,7 @@ int wanted_posX = -1;
 int wanted_posY = -1;
 int takeShot = 0;
 int lastAppliedToRetract = -1;
+int numMovedBackwards = 0;
 // TODO: Add event caching
 
 // ============== end ==============
@@ -189,6 +190,18 @@ struct displayList *clearDP(struct displayList *head);
 
 int checkEventActive(struct RoboAI *ai, int event);
 void changeMachineState(struct RoboAI *ai, int new_state);
-int handleStateActions(struct RoboAI *ai); // Returns 1 if we want to asynchronously shoot
+void handleStateActions(struct RoboAI *ai); // Returns 1 if we want to asynchronously shoot
+void handleShootingMechanism(struct RoboAI *ai);
+int get_curr_motor_power(int port_id);
 
+struct coord {
+  double x, y;
+};
+struct coord add_coords(struct coord a, struct coord b);
+struct coord calc_in_front_of_ball(struct RoboAI *ai);
+struct coord scale_coords(struct coord a, double b);
+struct coord normalize_vector(struct coord v);
+struct coord getNet(int side);
+struct coord new_coords(double x, double y);
+struct coord calc_in_front_of_ball(struct RoboAI *ai);
 #endif
