@@ -27,14 +27,43 @@
 #include <stdlib.h>
 
 // Change this to match the ports your bots motors are connected to
-#define LEFT_MOTOR MOTOR_D
-#define RIGHT_MOTOR MOTOR_A
+#define LEFT_MOTOR MOTOR_A
+#define RIGHT_MOTOR MOTOR_B
 
 #define AI_SOCCER 0 	// Play soccer!
 #define AI_PENALTY 1    // Go score some goals!
 #define AI_CHASE 2 	    // Kick the ball around and chase it!
 
 #define NOISE_VAR 5.0                   // Minimum amount of displacement considered NOT noise (in pixels).
+
+// ============== Our own defines ==============
+#define MOTOR_DRIVE_LEFT MOTOR_A
+#define MOTOR_DRIVE_RIGHT MOTOR_B
+#define MOTOR_SHOOT_RETRACT MOTOR_D
+
+#define TOUCH_SENSOR_INPUT PORT_3
+#define COLOUR_SENSOR_INPUT PORT_3
+
+#define NUMBER_PENALTY_STATES 7
+#define STATE_P_start 100
+#define STATE_P_hold 101
+#define STATE_P_alignWithOffset 102
+#define STATE_P_driveToOffset 103
+#define STATE_P_alignWithBall 104
+#define STATE_P_driveCarefullyUntilShot 105
+#define STATE_P_done 106
+
+#define NUMBER_OF_EVENTS 6
+#define EVENT_ballAndCarSeen 0
+#define EVENT_atWantedPosition 1
+#define EVENT_allignedWithPosition 2
+#define EVENT_ballIsInCage 3
+#define EVENT_shootingMechanismRetracted 4
+#define EVENT_ballCagedAndCanShoot 5
+
+
+
+// ============== end ==============
 
 struct AI_data{
 	// This data structure is used to hold all data relevant to the state of the AI.
@@ -151,4 +180,21 @@ struct displayList *clearDP(struct displayList *head);
    playing functionality below.
 *****************************************************************************/
 
+int checkEventActive(struct RoboAI *ai, int event);
+void changeMachineState(struct RoboAI *ai, int new_state);
+void handleStateActions(struct RoboAI *ai); // Returns 1 if we want to asynchronously shoot
+void handleShootingMechanism(struct RoboAI *ai);
+int get_curr_motor_power(int port_id);
+
+struct coord {
+  double x, y;
+};
+struct coord add_coords(struct coord a, struct coord b);
+struct coord calc_in_front_of_ball(struct RoboAI *ai);
+struct coord scale_coords(struct coord a, double b);
+struct coord normalize_vector(struct coord v);
+struct coord getNet(int side);
+struct coord new_coords(double x, double y);
+struct coord calc_in_front_of_ball(struct RoboAI *ai);
+int motor_power_async(char port_id, char power);
 #endif

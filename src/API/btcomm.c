@@ -817,7 +817,7 @@ int BT_read_touch_sensor(char sensor_port){
  message_id_counter++;
 
  if (reply[4]==0x02){
-  fprintf(stderr,"BT_touch_sensor(): Command successful\n");
+  //fprintf(stderr,"BT_touch_sensor(): Command successful\n");
   return(reply[5]!=0);
  }
  else{
