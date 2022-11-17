@@ -29,7 +29,7 @@
 #define HAVE_LIBGLUT 1
 
 /* Define to 1 if you have the `jpeg' library (-ljpeg). */
-#define HAVE_LIBJPEG 1
+/* #undef HAVE_LIBJPEG */
 
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
@@ -48,7 +48,7 @@
 #define HAVE_MALLOC_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
+/* #undef HAVE_MEMORY_H */
 
 /* Define to 1 if you have the `memset' function. */
 #define HAVE_MEMSET 1
