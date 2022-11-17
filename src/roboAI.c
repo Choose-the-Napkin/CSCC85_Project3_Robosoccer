@@ -619,6 +619,16 @@ void AI_calibrate(struct RoboAI *ai, struct blob *blobs)
  * AI state machine - this is where you will implement your soccer
  * playing logic
  * ************************************************************************/
+double oldXHeading = -1000.0;
+double oldYHeading = -1000.0;
+
+struct coord {
+  double x, y;
+};
+struct coord calc_in_front_of_ball(struct RoboAI *ai);
+
+
+
 void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 {
  /*************************************************************************
@@ -810,8 +820,34 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
    state transitions and with calling the appropriate function based on what
    the bot is supposed to be doing.
   *****************************************************************************/
-//  fprintf(stderr,"Just trackin'!\n");	// bot, opponent, and ball.
-//  track_agents(ai,blobs);		// Currently, does nothing but endlessly track
+  //fprintf(stderr,"Just trackin'!\n");	// bot, opponent, and ball.
+  track_agents(ai,blobs);		// Currently, does nothing but endlessly track
+
+  if (ai->st.self != NULL && ai->st.ball !=NULL){
+    if (oldXHeading!= -1000){
+      if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2),0.5) > 1.4){
+        ai->st.sdy *= -1;
+        ai->st.sdx *= -1;
+        printf("Flipping DIR\n");
+        fflush(stdout);
+      }
+    }
+
+    //printf("%f %f\n", ai->st.self->cx, ai->st.self->cy);
+    //fflush(stdout);
+    align_robot(ai, ai->st.ball->cx, ai->st.ball->cy);
+    
+    struct coord a = calc_in_front_of_ball(ai);
+  
+    oldXHeading = ai->st.sdx;
+    oldYHeading = ai->st.sdy;
+
+  }else{
+    oldXHeading = -1000;
+    oldYHeading = -1000;
+    BT_all_stop(0);
+  }
+  
  }
 
  // Update state based on transition
@@ -941,3 +977,128 @@ void handleStateActions(struct RoboAI *ai){
 
     }
 } 
+char motor_powers[4] = {0, 0, 0, 0};
+
+
+void update_motor_power(char port_ids, char power) {
+  for (int i = 0; i < 4; i++) {
+    if (port_ids == 1) {
+      motor_powers[i] = power;
+    }
+    port_ids <<= 1; // motors go up by powers of 2 for some reason
+  }
+
+  return;
+}
+
+int get_curr_motor_power(int port_id) {
+  for (int i = 0; i < 4; i++) {
+    if (port_id == 1) {
+      return motor_powers[i];
+    }
+    port_id <<= 1; // same as above
+  }
+
+  return -1; // invalid motor
+}
+
+int motor_power_async(char port_id, char power) {
+  if (get_curr_motor_power(port_id) == power) {
+    return 0; // no need
+  }
+  update_motor_power(port_id, power);
+  if (power == 0) {
+    return BT_motor_port_stop(port_id, 0);
+  }
+  
+  return BT_motor_port_start(port_id, power);
+}
+
+void align_robot(struct RoboAI *ai, double x, double y) { // angle is clockwise with 0 as facing right
+  // strt y = cy
+  double o1 = x;
+  double c1 = ai->st.self->cx;
+  double dir1 = ai->st.sdx;
+
+  double o2 = y;
+  double c2 = ai->st.self->cy;
+  double dir2 = ai->st.sdy;
+
+  if (fabs(y - ai->st.self->cy) > fabs(x - ai->st.self->cx)){
+    o2 = x;
+    c2 = ai->st.self->cx;
+    dir2 = ai->st.sdx;
+
+    o1 = y;
+    c1 = ai->st.self->cy;
+    dir1 = ai->st.sdy;
+  }
+
+  double diff_units = o1 - c1;
+  if (dir1 == 0) dir1= 0.001;
+  if (diff_units == 0) diff_units = 0.001;
+  double units_moved = diff_units / dir1;
+  double result_y = c2 + units_moved * dir2;
+
+  int dir = 1;
+  double diff_y_threshold = fabs(diff_units)*0.075;
+  //if (diff_y_threshold < 1) diff_y_threshold = 20;
+  //else if (diff_y_threshold > 5) diff_y_threshold = 50;
+
+  printf("%f\n", diff_y_threshold);
+  fflush(stdout);
+  if (fabs(result_y - o2) < diff_y_threshold){
+
+    motor_power_async(LEFT_MOTOR, 0);
+    motor_power_async(RIGHT_MOTOR, 0);
+    return;
+  }
+  
+  if (result_y < o2) dir *= -1;
+  if (units_moved < 0) dir *= -1;
+
+  double power_ratio = fabs(result_y - o2) / 100;//(fabs(diff_x)*0.5);
+  double total_power = 10*power_ratio;//max(min(4, ), 15);
+  if (total_power < 7.5) total_power = 7.5;
+  if (total_power > 25) total_power = 25;
+  
+  motor_power_async(LEFT_MOTOR, total_power * dir);
+  motor_power_async(RIGHT_MOTOR, -total_power * dir);
+}
+
+struct coord add_coords(struct coord a, struct coord b) {
+  return (struct coord){a.x + b.x, a.y + b.y};
+}
+
+struct coord scale_coords(struct coord a, double b) {
+  return (struct coord){a.x * b, a.y * b};
+}
+
+struct coord normalize_vector(struct coord v) {
+  double m = pow(pow(v.x, 2) + pow(v.y, 2), 0.5);
+  struct coord r;
+  r.x = v.x / m;
+  r.y = v.y / m;
+
+  return r;
+}
+
+struct coord getNet(int side) {
+  return (struct coord){(1 - side) * sx, sy / 2};
+}
+
+struct coord new_coords(double x, double y) {
+  return (struct coord){x, y};
+}
+
+struct coord calc_in_front_of_ball(struct RoboAI *ai) {
+  // Calc vector from ball to net nx ny
+  struct coord net = getNet(ai->st.side);
+  struct coord netvec;
+  netvec.x = net.x - ai->st.ball->cx;
+  netvec.y = net.y - ai->st.ball->cy;
+
+  struct coord res = add_coords(new_coords(ai->st.ball->cx, ai->st.ball->cy), scale_coords(normalize_vector(netvec), -100));
+  ai->DPhead = addPoint(ai->DPhead, res.x, res.y, 0, 255, 0);
+  return res;
+}
