@@ -627,6 +627,7 @@ int TRANSITION_TABLE[300][NUMBER_OF_EVENTS * 2]; // %2==0 means we don't want ev
 int wanted_posX = -1;
 int wanted_posY = -1;
 int takeShot = 0;
+int numVeryHugeTurn = 0;
 int lastAppliedToRetract = -1; // refactor this
 int terminateAtEnd = 1; // refactor this
 
@@ -776,7 +777,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   if (ai->st.state>=100){
     // T_T[STATE][EVENT * 2 + wantedToBeTrue] = newState
     // State 101
-    TRANSITION_TABLE[STATE_P_hold][EVENT_ballAndCarSeen * 2 + 1] = STATE_P_alignWithOffset;
+    TRANSITION_TABLE[STATE_P_hold][EVENT_ballAndCarSeen * 2 + 1] = STATE_P_alignWithBall;
 
     // State 102
     TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
@@ -849,10 +850,6 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
     // Call function to retract shooting mechanism or release
     handleShootingMechanism(ai);
-
-    // Recall headings so we can continue to ignore flips
-    oldXHeading = ai->st.sdx;
-    oldYHeading = ai->st.sdy;
   }
 }
 
@@ -869,53 +866,80 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
  You will lose marks if AI_main() is cluttered with code that doesn't belong
  there.
 **********************************************************************************/
+int wrong_path_beleif = 0;
+struct coord lastDrivingPosition;
 void fixAIHeadingDirection(struct RoboAI *ai){
     if (ai->st.self != NULL && oldXHeading!= -1000){
 
-        // printf("Handling flip\n");
-        // fflush(stdout);
-        int isDriving = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
-        int isTurning = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) < 0 ||
-                        get_curr_motor_power(MOTOR_DRIVE_LEFT) < 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
+      // printf("Handling flip\n");
+      // fflush(stdout);
+      int isDriving = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
+      printf("Drive mode: %d %d %d\n", get_curr_motor_power(MOTOR_DRIVE_LEFT), get_curr_motor_power(MOTOR_DRIVE_RIGHT), isDriving);
+      fflush(stdout);
+
+      int isTurning = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) < 0 ||
+                      get_curr_motor_power(MOTOR_DRIVE_LEFT) < 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
+      
+      if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
+          getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){ 
+          // Too big of a jump, assume its a flip or rando jump and flip it
+          ai->st.sdy *= -1;
+          ai->st.sdx *= -1;
+        }
+
+      // Detect outlier jump
+      if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
+          getExpectedUnitCircleDistance(PI * 1.0 / 4.0)){ 
+        if (numVeryHugeTurn >= 3){ 
+          // 3rd frame in a row we're reading far from heading, go back to strusting it
+          ai->st.sdy = oldYHeading;
+          ai->st.sdx = oldXHeading;
+        }
+        numVeryHugeTurn += 1;
+      }else{
+        numVeryHugeTurn = 0;
+      }
+      
+      // Detect if we are actually going reverse of expected
+      if (isDriving){ 
         
-        if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
-            getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){ 
-            // Too big of a jump, assume its a flip or rando jump and flip it
+        struct coord velocityVector = normalize_vector(new_coords(ai->st.self->cx - lastDrivingPosition.x, ai->st.self->cy - lastDrivingPosition.y));
+        printf("Readings %f,%f and %f,%f\n", ai->st.sdx, ai->st.sdy, velocityVector.x, velocityVector.y);
+        if (pow(pow(ai->st.sdx - velocityVector.x, 2) + pow(ai->st.sdy - velocityVector.y, 2), 0.5) > getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){
+          wrong_path_beleif++;
+
+          printf("Detecting m to d anamoly %d\n", wrong_path_beleif);
+          fflush(stdout);
+          if (wrong_path_beleif == 2){
+            printf("DECIDED WRONG DIRECTION HEADING\n");
+            fflush(stdout);
             ai->st.sdy *= -1;
             ai->st.sdx *= -1;
+            wrong_path_beleif = 0;
           }
 
-        // Detect outlier jump
-        if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
-            getExpectedUnitCircleDistance(PI * 1.0 / 4.0)){ 
-          if (numVeryHugeTurn >= 3){ 
-            // 3rd frame in a row we're reading far from heading, go back to strusting it
-            ai->st.sdy = oldYHeading;
-            ai->st.sdx = oldXHeading;
-          }
-          numVeryHugeTurn += 1;
         }else{
-          numVeryHugeTurn = 0;
+          wrong_path_beleif = 0;
         }
-        
-        // Detect if we are actually going reverse of expected
-        if (isDriving && pow(pow(ai->st.sdx - ai->st.smx, 2) + pow(ai->st.sdy - ai->st.smy, 2), 0.5) > 
-            getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){
-            printf("DETECTED WRONG DIRECTION HEADING\n");
-            fflush();
-            ai->st.sdy *= -1;
-            ai->st.sdx *= -1;
-        }   
+
+        lastDrivingPosition.x = ai->st.self->cx;
+        lastDrivingPosition.y = ai->st.self->cy;
+      }
+
+      // Recall headings so we can continue to ignore flips
+      oldXHeading = ai->st.sdx;
+      oldYHeading = ai->st.sdy;
     }
 }
 
 void handleShootingMechanism(struct RoboAI *ai){
+  /*
     if (takeShot){
       printf("Taking shot\n");
       fflush(stdout);
 
       // Keep pulling until not retract
-      BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, 100, 500);
+      BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 500);
       takeShot = 0;
       lastAppliedToRetract = 0;
       BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
@@ -943,12 +967,13 @@ void handleShootingMechanism(struct RoboAI *ai){
               lastAppliedToRetract = 1;
               //printf("Does this stall \n");
               //fflush(stdout);
-              BT_motor_port_start(MOTOR_SHOOT_RETRACT, 75);
+              BT_motor_port_start(MOTOR_SHOOT_RETRACT, -75);
               //printf("No! \n");
               //fflush(stdout);
           }
       }
     }
+    */
 }
 
 double getPowerNeededToAlign(struct RoboAI *ai){
@@ -960,40 +985,29 @@ double getPowerNeededToAlign(struct RoboAI *ai){
     double c2 = ai->st.self->cy;
     double dir2 = ai->st.sdy;
 
-    if (fabs(wanted_posY - ai->st.self->cy) > fabs(wanted_posX - ai->st.self->cx)){
-        o2 = wanted_posX;
-        c2 = ai->st.self->cx;
-        dir2 = ai->st.sdx;
-
-        o1 = wanted_posY;
-        c1 = ai->st.self->cy;
-        dir1 = ai->st.sdy;
-    }
-
     double unit_diff = o1 - c1;
     if (dir1 == 0) dir1= 0.001;
     if (unit_diff == 0) unit_diff = 0.001;
 
     double units_moved = unit_diff / dir1;
+
+    struct coord expectedVector = normalize_vector(new_coords(wanted_posX - ai->st.self->cx, wanted_posY - ai->st.self->cy));
+    struct coord orientationVector = new_coords(ai->st.sdx, ai->st.sdy);
+    double vectorOffsets = pow(pow(expectedVector.x - orientationVector.x, 2) + pow(expectedVector.y - orientationVector.y, 2), 0.5);
+    if (units_moved > 0 && vectorOffsets < getExpectedUnitCircleDistance(PI * 1.0 / 15)){
+      return 0.0;
+    }
+
     double result_y = c2 + units_moved * dir2;
     
     int dir = 1;
-    double diff_y_threshold = fabs(unit_diff)*0.075;
-    if (diff_y_threshold < 10) diff_y_threshold = 10; 
-
-    if (fabs(result_y - o2) < diff_y_threshold*3 && units_moved >= 0){
-        return 0.0;
-    }
-
     if (result_y < o2) dir *= -1;
     if (units_moved < 0) dir *= -1;
-    // Try the flip above only if its directed by X(?)
 
-    double power_ratio = fabs(result_y - o2) / 100;//(fabs(diff_x)*0.5);
-    double total_power = 10*power_ratio;//max(min(4, ), 15);
-    if (total_power < 7.5) total_power = 7.5;
-    if (total_power > 25) total_power = 20;
-    if (units_moved < 0) total_power = 25;
+    double total_power = 30*vectorOffsets;
+    if (total_power < 10) total_power = 10;
+    if (total_power > 45) total_power = 45;
+    if (units_moved < 0) total_power = 50;
     return total_power * dir;
 }
 
@@ -1004,6 +1018,7 @@ int checkEventActive(struct RoboAI *ai, int event){
 
     if (checkingEvent == EVENT_ballAndCarSeen){
         result = ai->st.self != NULL && ai->st.ball != NULL;
+
     }else if (checkingEvent == EVENT_atWantedPosition){
         // Add distance checker
         double dist = pow(pow(ai->st.self->cx - wanted_posX, 2) + pow(ai->st.self->cy - wanted_posY, 2), 0.5);
@@ -1039,6 +1054,10 @@ void changeMachineState(struct RoboAI *ai, int new_state){
     if (new_state == STATE_P_alignWithBall || new_state == STATE_P_alignWithOffset){
         wanted_posX = -1;
         wanted_posY = -1;
+    }
+
+    if (new_state == STATE_P_driveToOffset || new_state == STATE_P_driveCarefullyUntilShot){
+      lastDrivingPosition = new_coords(ai->st.old_bcx, ai->st.old_bcy);
     }
 
     motor_power_async(MOTOR_DRIVE_LEFT, 0);
@@ -1097,7 +1116,7 @@ void handleStateActions(struct RoboAI *ai){
                 takeShot = 1;
             }
 
-            // Drive at 0.075
+            // Drive at 10
             motor_power_async(MOTOR_DRIVE_LEFT, 10);
             motor_power_async(MOTOR_DRIVE_RIGHT, 10);
         }
@@ -1106,35 +1125,17 @@ void handleStateActions(struct RoboAI *ai){
 
     }
 } 
-char motor_powers[4] = {0, 0, 0, 0};
-
-void update_motor_power(char port_ids, char power) {
-  for (int i = 0; i < 4; i++) {
-    if (port_ids == 1) {
-      motor_powers[i] = power;
-    }
-    port_ids <<= 1; // motors go up by powers of 2 for some reason
-  }
-
-  return;
-}
+char motor_powers[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 int get_curr_motor_power(int port_id) {
-  for (int i = 0; i < 4; i++) {
-    if (port_id == 1) {
-      return motor_powers[i];
-    }
-    port_id <<= 1; // same as above
-  }
-
-  return -1; // invalid motor
+  return motor_powers[port_id];
 }
 
 int motor_power_async(char port_id, char power) {
   if (get_curr_motor_power(port_id) == power) {
     return 0; // no need
   }
-  update_motor_power(port_id, power);
+  motor_powers[port_id] = power;
   if (power == 0) {
     return BT_motor_port_stop(port_id, 0);
   }
@@ -1153,10 +1154,15 @@ struct coord scale_coords(struct coord a, double b) {
 struct coord normalize_vector(struct coord v) {
   double m = pow(pow(v.x, 2) + pow(v.y, 2), 0.5);
   struct coord r;
-  r.x = v.x / m;
-  r.y = v.y / m;
-  printf("Normalized %f, %f to %f, %f\n", v.x, v.y, r.x, r.y);
-  fflush();
+  if (m == 0){
+    r.x = 0;
+    r.y = 0;
+  }else{
+    r.x = v.x / m;
+    r.y = v.y / m;
+  }
+  //printf("Normalized %f, %f to %f, %f\n", v.x, v.y, r.x, r.y);
+  //fflush(stdout);
   return r;
 }
 
@@ -1175,14 +1181,14 @@ struct coord calc_in_front_of_ball(struct RoboAI *ai) {
   netvec.x = net.x - ai->st.ball->cx;
   netvec.y = net.y - ai->st.ball->cy;
 
-  struct coord res = add_coords(new_coords(ai->st.ball->cx, ai->st.ball->cy), scale_coords(normalize_vector(netvec), -100));
+  struct coord res = add_coords(new_coords(ai->st.ball->cx, ai->st.ball->cy), scale_coords(normalize_vector(netvec), -300));
   //ai->DPhead = addPoint(ai->DPhead, res.x, res.y, 0, 255, 0);
-  printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
-  fflush();
+  //printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
+  //fflush(stdout);
   return res;
 }
 
 
 double getExpectedUnitCircleDistance(double angleOffset){ // MAX half rotation (ie pi)
     return pow(pow(1 - cos(angleOffset), 2) + pow(0 - sin(angleOffset), 2), 0.5);
-} Math.pi
+}
