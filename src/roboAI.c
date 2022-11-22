@@ -631,6 +631,11 @@ int takeShot = 0;
 int lastAppliedToRetract = -1;
 int numMovedBackwards = 0;
 int numVeryHugeTurn = 0;
+int terminateAtEnd = 1;
+//struct coord oldLocation = struct  cord{-1, -1};
+double oldXSaved = -1;
+double oldYSaved = -1;
+
 // TODO: Add event caching
 
 void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
@@ -772,22 +777,25 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   }
   
   if (ai->st.state>=200){
-
-  }else if (ai->st.state>=100){
+    terminateAtEnd = 0;
+    ai->st.state = 101;
+  }
+  
+  if (ai->st.state>=100){
     // T_T[STATE][EVENT * 2 + wantedToBeTrue] = newState
     // State 101
     TRANSITION_TABLE[STATE_P_hold][EVENT_ballAndCarSeen * 2 + 1] = STATE_P_alignWithBall;
 
     // State 102
-    /*
-    TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
-    TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_allignedWithPosition * 2 + 1] = STATE_P_driveToOffset;
+    
+    //TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    //TRANSITION_TABLE[STATE_P_alignWithOffset][EVENT_allignedWithPosition * 2 + 1] = STATE_P_driveToOffset;
 
     // State 103
-    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
-    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_allignedWithPosition * 2 + 0] = STATE_P_alignWithOffset;
-    TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_atWantedPosition * 2 + 1] = STATE_P_alignWithBall;
-    */
+    //TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
+    //TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_allignedWithPosition * 2 + 0] = STATE_P_alignWithOffset;
+    //TRANSITION_TABLE[STATE_P_driveToOffset][EVENT_atWantedPosition * 2 + 1] = STATE_P_alignWithBall;
+    
    
     // State 104
     TRANSITION_TABLE[STATE_P_alignWithBall][EVENT_ballAndCarSeen * 2 + 0] = STATE_P_hold;
@@ -802,7 +810,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     // We set to 100 by hand at is it the end of program once we think we've made the shot
 
     }else{
-
+      
     }
     printf("Initialized table\n");
     fflush(stdout);
@@ -854,23 +862,46 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
           numVeryHugeTurn = 0;
         }
 
-        /*
+        
         // Detect if we are actually going reverse of expected
         if (get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0 ){
+          if (oldXSaved != -1 && oldYSaved != -1){
+            double dist_X = ai->st.self->cx - oldXSaved;
+            double dist_Y = ai->st.self->cy - oldYSaved;
+            double dist_Z = pow(pow(dist_X, 2) + pow(dist_Y, 2), 0.5);
+            double normalized_X = dist_X / dist_Z;
+            double normalized_Y = dist_Y / dist_Z;
+
+            if (pow(pow(ai->st.sdx - normalized_X, 2) + pow(ai->st.sdy - normalized_Y, 2),0.5) > 1.4){
+              ai->st.sdy *= -1;
+              ai->st.sdx *= -1;
+              printf("FLIPPED FORCED ORIENTATION\n");
+              fflush(stdout);
+            }
+          }else{
+            oldXSaved = ai->st.self->cx;
+            oldYSaved = ai->st.self->cy;
+
+          }
+
+          /*
           struct coord cur_dir_heading = normalize_vector(new_coords(ai->st.svx, ai->st.svy));
           if (pow(pow(ai->st.sdx - cur_dir_heading.x, 2) + pow(ai->st.sdy - cur_dir_heading.y, 2),0.5) > 1.4){
             if (numMovedBackwards == 1){
-                ai->st.sdy *= -1;
-                ai->st.sdx *= -1;
-                printf("FLIPPED FORCED ORIENTATION\n");
-                fflush(stdout);
+                
             }
             numMovedBackwards = 1 - numMovedBackwards;
           }else{
               numMovedBackwards = 0;
           }
+          */
+
+        }else{
+          oldXSaved = -1;
+          oldYSaved = -1;
+
         }
-        */
+        
         // numVeryHugeTurn
 
     }
@@ -929,23 +960,20 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
 void handleShootingMechanism(struct RoboAI *ai){
     if (takeShot){
-      //printf("Taking shot\n");
-      //fflush(stdout);
-        // Keep pulling until not retract
-        if (checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)){
-            if (lastAppliedToRetract != 2){
-                lastAppliedToRetract = 2;
-                BT_motor_port_start(MOTOR_SHOOT_RETRACT, 1);
-            }
-        }else{
-            takeShot = 0;
-            lastAppliedToRetract = 0;
-            BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+      printf("Taking shot\n");
+      fflush(stdout);
 
-            if (ai->st.state>=100 && ai->st.state<200){ // Penalty mode, halt the program
-                changeMachineState(ai, STATE_P_done);
-            }      
-        }
+      // Keep pulling until not retract
+      BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, 100, 500);
+      takeShot = 0;
+      lastAppliedToRetract = 0;
+      BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+
+      if (terminateAtEnd){ // Penalty mode, halt the program
+        changeMachineState(ai, STATE_P_done);
+      }  else{
+        changeMachineState(ai, STATE_P_hold);
+      }
 
     }else{ // Maintain retracted
       //printf("Maintaining shot\n");
@@ -964,7 +992,7 @@ void handleShootingMechanism(struct RoboAI *ai){
               lastAppliedToRetract = 1;
               //printf("Does this stall \n");
               //fflush(stdout);
-              BT_motor_port_start(MOTOR_SHOOT_RETRACT, 0.5);
+              BT_motor_port_start(MOTOR_SHOOT_RETRACT, 75);
               //printf("No! \n");
               //fflush(stdout);
           }
@@ -1002,12 +1030,12 @@ double getPowerNeededToAlign(struct RoboAI *ai){
     double diff_y_threshold = fabs(unit_diff)*0.075;
     if (diff_y_threshold < 10) diff_y_threshold = 10; 
 
-    if (fabs(result_y - o2) < diff_y_threshold && units_moved >= 0){
+    if (fabs(result_y - o2) < diff_y_threshold*3 && units_moved >= 0){
         return 0.0;
     }
 
     if (result_y < o2) dir *= -1;
-    //if (units_moved < 0) dir *= -1;
+    if (units_moved < 0) dir *= -1;
     // Try the flip above only if its directed by X(?)
 
     double power_ratio = fabs(result_y - o2) / 100;//(fabs(diff_x)*0.5);
@@ -1067,6 +1095,10 @@ void changeMachineState(struct RoboAI *ai, int new_state){
 
     motor_power_async(MOTOR_DRIVE_LEFT, 0);
     motor_power_async(MOTOR_DRIVE_RIGHT, 0);
+
+    if (new_state == STATE_P_done){
+      exit(0);
+    }
 }
 
 
@@ -1095,8 +1127,8 @@ void handleStateActions(struct RoboAI *ai){
 
         }else if (state == STATE_P_driveToOffset){
             // Drive at 0.35
-            motor_power_async(MOTOR_DRIVE_LEFT, 35);
-            motor_power_async(MOTOR_DRIVE_RIGHT, 35);
+            motor_power_async(MOTOR_DRIVE_LEFT, 15);
+            motor_power_async(MOTOR_DRIVE_RIGHT, 15);
 
         } else if (state == STATE_P_alignWithBall){
             // Set wantedX and wantedY
