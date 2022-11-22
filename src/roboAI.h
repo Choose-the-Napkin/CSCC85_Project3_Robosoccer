@@ -41,7 +41,7 @@
 #define MOTOR_DRIVE_RIGHT MOTOR_B
 #define MOTOR_SHOOT_RETRACT MOTOR_D
 
-#define TOUCH_SENSOR_INPUT PORT_3
+#define TOUCH_SENSOR_INPUT PORT_2
 #define COLOUR_SENSOR_INPUT PORT_3
 
 #define NUMBER_PENALTY_STATES 7
@@ -54,7 +54,7 @@
 #define STATE_P_done 106
 
 #define NUMBER_OF_EVENTS 6
-#define EVENT_ballAndCarSeen 0
+#define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
 #define EVENT_ballIsInCage 3
@@ -189,13 +189,13 @@ struct coord {
   double x, y;
 };
 struct coord add_coords(struct coord a, struct coord b);
-struct coord calc_in_front_of_ball(struct RoboAI *ai);
 struct coord scale_coords(struct coord a, double b);
 struct coord normalize_vector(struct coord v);
 struct coord getNet(int side);
 struct coord new_coords(double x, double y);
-struct coord calc_in_front_of_ball(struct RoboAI *ai);
+struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset);
 int motor_power_async(char port_id, char power);
 double getExpectedUnitCircleDistance(double angleOffset);
 void fixAIHeadingDirection(struct RoboAI *ai);
+void updateBallPosRobust(struct RoboAI *ai);
 #endif
