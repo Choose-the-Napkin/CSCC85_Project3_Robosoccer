@@ -62,7 +62,6 @@
 #define EVENT_ballCagedAndCanShoot 5
 
 
-
 // ============== end ==============
 
 struct AI_data{
