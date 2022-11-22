@@ -196,4 +196,5 @@ struct coord getNet(int side);
 struct coord new_coords(double x, double y);
 struct coord calc_in_front_of_ball(struct RoboAI *ai);
 int motor_power_async(char port_id, char power);
+double getExpectedUnitCircleDistance(double angleOffset)
 #endif
