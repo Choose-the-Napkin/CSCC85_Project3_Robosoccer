@@ -51,13 +51,15 @@
 
 // Attack states
 //#define STATE_S_ATTACK 10
-#define STATE_S_curveToShootingPosition 15
+#define STATE_S_curveToBall 15
 #define STATE_S_alignRobotToShoot 16
-#define STATE_S_runAtBallAndShoot 20
+#define STATE_S_getBallInPouch 17
+#define STATE_S_OrientBallandShoot 20
 
 // Defense states
 //#define STATE_S_DEFEND 40
 #define STATE_S_curveToInterceptBall 45
+#define STATE_S_alignWithBallBeforeCreep 46
 #define STATE_S_creepSlowlyToBall 50
 
 // Stuck with enemy states
@@ -73,7 +75,7 @@
 #define STATE_P_driveCarefullyUntilShot 105
 #define STATE_P_done 106
 
-#define NUMBER_OF_EVENTS 13
+#define NUMBER_OF_EVENTS 14
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
@@ -87,6 +89,7 @@
 #define EVENT_headingAwayFromwantedPosition 10
 #define EVENT_alignedToScore 11
 #define EVENT_ballIsConsiderablyFar 12
+#define EVENT_bothRobotsCloseToBall 13
 // TODO: incorporate object detection somewhere
 
 
@@ -221,7 +224,7 @@ struct coord scale_coords(struct coord a, double b);
 struct coord normalize_vector(struct coord v);
 struct coord getNet(int side);
 struct coord new_coords(double x, double y);
-struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset);
+struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset, struct coord net);
 int motor_power_async(char port_id, char power);
 double getExpectedUnitCircleDistance(double angleOffset);
 void fixAIHeadingDirection(struct RoboAI *ai);
