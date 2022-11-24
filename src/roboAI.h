@@ -41,10 +41,30 @@
 #define MOTOR_DRIVE_RIGHT MOTOR_B
 #define MOTOR_SHOOT_RETRACT MOTOR_D
 
+#define GYRO_SENSOR_INPUT PORT_1
 #define TOUCH_SENSOR_INPUT PORT_2
 #define COLOUR_SENSOR_INPUT PORT_3
 
-#define NUMBER_PENALTY_STATES 7
+// Soccer states
+#define STATE_S_start 0
+#define STATE_S_think 1
+
+// Attack states
+//#define STATE_S_ATTACK 10
+#define STATE_S_curveToShootingPosition 15
+#define STATE_S_alignRobotToShoot 16
+#define STATE_S_runAtBallAndShoot 20
+
+// Defense states
+//#define STATE_S_DEFEND 40
+#define STATE_S_curveToInterceptBall 45
+#define STATE_S_creepSlowlyToBall 50
+
+// Stuck with enemy states
+#define STATE_S_FIGHT 60
+
+// Penalty states
+// Penalty tries to be very precise, drives straight
 #define STATE_P_start 100
 #define STATE_P_hold 101
 #define STATE_P_alignWithOffset 102
@@ -53,13 +73,21 @@
 #define STATE_P_driveCarefullyUntilShot 105
 #define STATE_P_done 106
 
-#define NUMBER_OF_EVENTS 6
+#define NUMBER_OF_EVENTS 13
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
 #define EVENT_ballIsInCage 3
 #define EVENT_shootingMechanismRetracted 4
 #define EVENT_ballCagedAndCanShoot 5
+#define EVENT_robotIsStuckOnWall 6
+#define EVENT_robotIsStuckOnEnemy 7
+#define EVENT_weWinRaceToBall 8
+#define EVENT_ballMoving 9
+#define EVENT_headingAwayFromwantedPosition 10
+#define EVENT_alignedToScore 11
+#define EVENT_ballIsConsiderablyFar 12
+// TODO: incorporate object detection somewhere
 
 
 // ============== end ==============
@@ -197,5 +225,5 @@ struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset);
 int motor_power_async(char port_id, char power);
 double getExpectedUnitCircleDistance(double angleOffset);
 void fixAIHeadingDirection(struct RoboAI *ai);
-void updateBallPosRobust(struct RoboAI *ai);
+void updateRobustPositions(struct RoboAI *ai);
 #endif
