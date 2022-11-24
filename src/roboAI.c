@@ -637,9 +637,6 @@ double thresholdStrictness;
 int takeShot = 0;
 int numVeryHugeTurn = 0;
 int lastAppliedToRetract = -1; // refactor this
-int terminateAtEnd = 1; // refactor this
-
-
 
 void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 {
@@ -781,8 +778,10 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     
     if (ai->st.state>=200){
       // TODO: add something for chase 
-
-    }else if (ai->st.state>=100){
+      ai->st.state = STATE_S_curveToBall;
+    }
+    
+    if (ai->st.state>=100){
       // T_T[STATE][EVENT * 2 + wantedToBeTrue] = newState
       // State 101
       TRANSITION_TABLE[STATE_P_hold][EVENT_carSeen * 2 + 1] = STATE_P_alignWithOffset;
@@ -810,12 +809,9 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;//STATE_S_curveToShootingPosition;
 
       // Attack states
-      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_think;
+      // TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_think;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;//STATE_S_alignRobotToShoot;
 
-      // get ball in pouch changes states within its own complex logic
-      // STATE_S_OrientBallandShoot also does its own logic
-      // TODO: move logic step to here ...
 
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       //TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_ballMoving* 2 + 1] = STATE_S_curveToShootingPosition;
@@ -831,15 +827,15 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       //TRANSITION_TABLE[STATE_S_runAtBallAndShoot][EVENT_ballIsConsiderablyFar * 2 + 1] = STATE_S_think;
 
       // Defense states
-      //TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_think;
-      //TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignWithBallBeforeCreep;
+      TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignWithBallBeforeCreep;
 
       // Reorient
-      //TRANSITION_TABLE[STATE_S_alignWithBallBeforeCreep][EVENT_allignedWithPosition* 2 + 1] = STATE_S_creepSlowlyToBall;
+      TRANSITION_TABLE[STATE_S_alignWithBallBeforeCreep][EVENT_allignedWithPosition* 2 + 1] = STATE_S_creepSlowlyToBall;
 
       // creep state aligns and moves forward;
-      //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_alignRobotToShoot;
-      //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithBallBeforeCreep;
+      TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_alignRobotToShoot;
+      TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithBallBeforeCreep;
       //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_ballMoving* 2 + 1] = STATE_S_think;
     } 
   }
@@ -979,6 +975,8 @@ void updateRobustPositions(struct RoboAI *ai){
   if (ai->st.opp != NULL){
     robustEnemyCx = ai->st.opp->cx;
     robustEnemyCy = ai->st.opp->cy;
+    printf("DETECTED ENEMY");
+    fflush(stdout);
   }
 }
 
@@ -995,10 +993,12 @@ void handleShootingMechanism(struct RoboAI *ai){
     lastAppliedToRetract = 0;
     BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
 
-    if (terminateAtEnd){ // Penalty mode, halt the program
+    if (ai->st.state >= 200){
+
+    }else if (ai->st.state >= 100){
       changeMachineState(ai, STATE_P_done);
-    }  else{
-      changeMachineState(ai, STATE_P_hold);
+    }else{
+      changeMachineState(ai, STATE_S_think);
     }
 
   }else{ // Maintain retracted
@@ -1093,22 +1093,14 @@ int checkEventActive(struct RoboAI *ai, int event){
         // TODO: implement
 
     }else if (checkingEvent == EVENT_weWinRaceToBall){
-      double ourDistToBall = 0; //pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5);
-      double thierDistToBall = 10000; //pow(pow(robustEnemyCx - robustBallCx, 2) + pow(robustEnemyCy - robustBallCy, 2), 0.5);
-      printf("DISTANCE TO BALL CHECK %f\n", ourDistToBall);
-      fflush(stdout);
-      if (ourDistToBall <= 300 && thierDistToBall <= 200){
-        result = 1; // TODO: split this for EVENT_bothRobotsCloseToBall and make that event direct us to fight state
-      }else if (ourDistToBall <= 300 ){
-        result = 1;
-      }else if (thierDistToBall <= 200){
-        result = 0;
-      }else{
-        result = 0; //ourDistToBall * 1.6 > thierDistToBall;
-      }
+      double ourDistToBall = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5);
+      double thierDistToBall = pow(pow(robustEnemyCx - robustBallCx, 2) + pow(robustEnemyCy - robustBallCy, 2), 0.5);
       
-
-
+      result = ourDistToBall < thierDistToBall * 1.3;
+      // TODO: add check for bull fight
+      printf("We win ball race: %d\n", result);
+      fflush(stdout);
+      
     }else if (checkingEvent == EVENT_ballMoving){
         result = 0;
         // TODO: implement
@@ -1153,7 +1145,7 @@ void changeMachineState(struct RoboAI *ai, int new_state){
     if (new_state == STATE_P_alignWithBall || new_state == STATE_P_alignWithOffset || new_state == STATE_S_alignRobotToShoot || STATE_S_alignWithBallBeforeCreep || new_state == STATE_S_OrientBallandShoot ){
         wanted_posX = -1;
         wanted_posY = -1;
-        if (new_state == STATE_S_alignRobotToShoot) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
+        if (new_state == STATE_S_alignRobotToShoot) thresholdStrictness = PI/40; // set tigher strictness for allignment to wanted position, as its relevant to shooting
         else if (new_state == STATE_P_alignWithBall) thresholdStrictness = PI/30;
     }
     
@@ -1269,7 +1261,7 @@ void handleStateActions(struct RoboAI *ai){
     } else{
         if (state == STATE_S_curveToBall){
           if (robustBallCx != -1000){
-            struct coord location = calc_in_front_of_ball(ai, -ALIGN_OFFSET, new_coords(robustSelfCx, robustSelfCy));
+            struct coord location = calc_in_front_of_ball(ai, -ALIGN_OFFSET * 0.8, new_coords(robustSelfCx, robustSelfCy));
             wanted_posX = location.x;
             wanted_posY = location.y;
           }
@@ -1282,7 +1274,25 @@ void handleStateActions(struct RoboAI *ai){
           handleCurveToGivenLocation(ai);
 
         }else if (state == STATE_S_alignRobotToShoot){
-          handleAlignWithGivenOffset(ai, 0);
+          if (robustBallCx != -1000){
+            wanted_posX = robustBallCx;
+            wanted_posY = robustBallCy;
+          }
+
+          if (wanted_posX != -1 && wanted_posY != -1){
+              double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY);
+              if (power >= 30){
+                driftingInPouch = 0;
+                printf("START THE DRIFT from odd catch??\n");
+                fflush(stdout);
+                changeMachineState(ai, STATE_S_OrientBallandShoot);
+              }else{
+                printf("DECIDING TO LINE UP WITH POWER %f \n", power);
+                motor_power_async(MOTOR_DRIVE_LEFT, power);
+                motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
+              }
+          }
+          //handleAlignWithGivenOffset(ai, 0);
 
         }else if (state == STATE_S_alignWithBallBeforeCreep){
           // TODO: add some interesting checkers so we dont turn into scoring a goal on ourselves (as this is called after reaching goalie)
