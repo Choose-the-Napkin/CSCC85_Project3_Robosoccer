@@ -1123,7 +1123,7 @@ void handleShootingMechanism(struct RoboAI *ai){
     BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 500);
     takeShot = 0;
     lastAppliedToRetract = 0;
-    hasBeenTouched = 0;
+    hasBeenTouched = 10;
     BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
 
     if (ai->st.state >= 200){
@@ -1145,17 +1145,19 @@ void handleShootingMechanism(struct RoboAI *ai){
         if (lastAppliedToRetract != 0){
             lastAppliedToRetract = 0;
             BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 1);
-            hasBeenTouched = 1;
+            hasBeenTouched = 0;
         }
     }else {
-        if (lastAppliedToRetract != 1){
-            lastAppliedToRetract = 1;
-            //printf("Does this stall \n");
-            //fflush(stdout);
-            BT_motor_port_start(MOTOR_SHOOT_RETRACT, -40);//-60 + 10 * hasBeenTouched);
-            //printf("No! \n");
-            //fflush(stdout);
-        }
+      if (hasBeenTouched == 0 && lastAppliedToRetract != 1){
+        BT_motor_port_start(MOTOR_SHOOT_RETRACT, -25);
+        lastAppliedToRetract = 1;
+
+      }else if (hasBeenTouched > 0 && lastAppliedToRetract != 2){
+        BT_motor_port_start(MOTOR_SHOOT_RETRACT, -100);
+        lastAppliedToRetract = 2;
+        hasBeenTouched--;
+
+      }
     }
   }
 }
@@ -1349,48 +1351,48 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
   }
 }
 
-void handleCurveToGivenLocation(struct RoboAI* ai){
+void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_wanted){
   struct coord self = new_coords(robustSelfCx, robustSelfCy);
   struct coord opponent = new_coords(robustEnemyCx, robustEnemyCy);
   struct coord original_goal = new_coords(wanted_posX, wanted_posY);
-  struct coord goal = calc_goal_with_obstacles(ai, self, original_goal, opponent, 100, 100, 10);
+  struct coord goal = calc_goal_with_obstacles(ai, self, original_goal, opponent, 150, 150, 50);
 
   // TODO: add backwards movement instead of
-    double curvePower = getPowerNeededToAlign(ai, goal.x, goal.y, allow_backwards_into_wanted);
-    int driveBackwards = getPowerNeededToAlign(ai, goal.x, goal.y, 0) != curvePower;
+  double curvePower = getPowerNeededToAlign(ai, goal.x, goal.y, allow_backwards_into_wanted);
+  int driveBackwards = getPowerNeededToAlign(ai, goal.x, goal.y, 0) != curvePower;
 
-    double dist = pow(pow(robustSelfCx - goal.x, 2) + pow(robustSelfCy - goal.y, 2), 0.5);
-    double pushPower = 100;
-    if (dist < 200){
-      pushPower = 40;
-    }else if (dist < 300){
-      pushPower = 65;
+  double dist = distance_between_points(self, goal);
+  double pushPower = 100;
+  if (dist < 200){
+    pushPower = 40;
+  }else if (dist < 300){
+    pushPower = 65;
+  }
+
+  double abs_curve = fabs(curvePower);
+  if (abs_curve >= 30 && abs_curve < 40){ // just spin, we face the wrong way
+    motor_power_async(MOTOR_DRIVE_LEFT, curvePower);
+    motor_power_async(MOTOR_DRIVE_RIGHT, -curvePower); 
+
+  }else{
+    double dir = (1 - driveBackwards)*2 - 1;
+
+    /*
+    if (abs_curve >= 40){ // we can get to offset by moving backwards
+      dir = -1;
+      pushPower -= 5;
     }
+    */
+    
+    double powerL = pushPower;
+    double powerR = pushPower;
 
-    double abs_curve = fabs(curvePower);
-    if (abs_curve >= 30 && abs_curve < 40){ // just spin, we face the wrong way
-      motor_power_async(MOTOR_DRIVE_LEFT, curvePower);
-      motor_power_async(MOTOR_DRIVE_RIGHT, -curvePower); 
+    if (curvePower > 0) powerR = pushPower * 0.8;
+    else if (curvePower < 0) powerL = pushPower * 0.8;
 
-    }else{
-      double dir = (1 - driveBackwards)*2 - 1;
-
-      /*
-      if (abs_curve >= 40){ // we can get to offset by moving backwards
-        dir = -1;
-        pushPower -= 5;
-      }
-      */
-      
-      double powerL = pushPower;
-      double powerR = pushPower;
-
-      if (curvePower > 0) powerR = pushPower * 0.8;
-      else if (curvePower < 0) powerL = pushPower * 0.8;
-
-      motor_power_async(MOTOR_DRIVE_LEFT, dir*powerL);
-      motor_power_async(MOTOR_DRIVE_RIGHT, dir*powerR); 
-    }
+    motor_power_async(MOTOR_DRIVE_LEFT, dir*powerL);
+    motor_power_async(MOTOR_DRIVE_RIGHT, dir*powerR); 
+  }
 }
 
 void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int typeOfOffset, double turnPower) {
@@ -1519,11 +1521,11 @@ void handleStateActions(struct RoboAI *ai){
           }
 
           if (wanted_posX != -1 && wanted_posY != -1){
-            handleCurveToGivenLocation(ai);
+            handleCurveToGivenLocation(ai, 0);
           }
 
         }else if (state == STATE_S_curveToInterceptBall){
-          handleCurveToGivenLocation(ai);
+          handleCurveToGivenLocation(ai, 1);
 
         }else if (state == STATE_S_alignRobotToShoot){
           if (robustBallCx != -1000){
@@ -1539,9 +1541,9 @@ void handleStateActions(struct RoboAI *ai){
                 changeMachineState(ai, STATE_S_OrientBallandShoot);
               }else{
                //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
-                forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, -power);
-                //motor_power_async(MOTOR_DRIVE_LEFT, power);
-                //motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
+                //forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, -power);
+                motor_power_async(MOTOR_DRIVE_LEFT, power);
+                motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
               }
           }
           //handleAlignWithGivenOffset(ai, 0);
@@ -1617,7 +1619,7 @@ void handleStateActions(struct RoboAI *ai){
         
         
         /*else if (state == STATE_S_runAtBallAndShoot){
-          wanted_posX = robustBallCx;
+          wanted_posX = robustBallCx;calc_goal_with_obstacles
           wanted_posY = robustBallCy;
 
           struct coord net = getNet(ai->st.side);
@@ -1628,7 +1630,7 @@ void handleStateActions(struct RoboAI *ai){
           printf("DISTANCE TO BALL CHECK %f\n", ourDistToBall);
 
           || ballWasSeenInPouch && ourDistToBall < 120){
-            // The ball is likely inside of our net
+            // The ball is likely inside of our netcalc_goal_with_obstacles
             ballWasSeenInPouch = 1;
 
             
@@ -1714,11 +1716,14 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
     } else {
       returned_goal = offset_2;
     }
+    ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
   } else {
     returned_goal = goal;
+    ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 255, 255);
   }
 
-  addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
+  printf("Nothing in the way, original %f %f, goal %f %f\n", goal.x, goal.y, returned_goal.x, returned_goal.y);
+  //ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
   return returned_goal;
 }
 
@@ -1752,7 +1757,7 @@ struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset, str
 
   struct coord res = add_coords(new_coords(robustBallCx, robustBallCy), scale_coords(normalize_vector(netvec), distanceOffset));
   ai->DPhead = addPoint(ai->DPhead, res.x, res.y, 0, 255, 0);
-  //printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
+  printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
   //fflush(stdout);
   return res;
 }
