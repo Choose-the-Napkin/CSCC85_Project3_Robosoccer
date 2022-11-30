@@ -629,6 +629,7 @@ struct coord oldValues[4][5];
 int numValidValues[4] = {0, 0, 0, 0};
 int closingDistanceToBall = 0; // 1 means we are getting closer, -1 means further, 0 means maintaining distance
 int certaintyOfClosingDist = 0; // How many frames in a row we've observed getting closer/further
+int ignoreNextXHeadings = 0;
 
 // robust values
 double robustHeadingX = -1000.0;
@@ -890,8 +891,8 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   //fprintf(stderr,"Just trackin'!\n");	// bot, opponent, and ball.
     track_agents(ai,blobs);		// Currently, does nothing but endlessly track
     
-    updateRobustValues(ai);
     fixAIHeadingDirection(ai);
+    updateRobustValues(ai);
 
     //printf("Finished value updates\n");
 
@@ -960,6 +961,7 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         numVeryHugeTurn = 0;
       }
       
+
       
       // Detect if we are actually going reverse of expected
       if (isDriving){ 
@@ -975,26 +977,31 @@ void fixAIHeadingDirection(struct RoboAI *ai){
             fflush(stdout);
             ai->st.sdy *= -1;
             ai->st.sdx *= -1;
-            wrong_path_beleif = -3;
+            wrong_path_beleif = 0;
           }
 
         }else{
-          wrong_path_beleif = -3;
+          wrong_path_beleif = 0;
         }
 
         lastDrivingPosition.x = robustSelfCx;
         lastDrivingPosition.y = robustSelfCy;
       }
-
     }
 
+    
     if (!alreadyVerifiedHeading && ai->st.self != NULL){ // assume initial orientation is facing inwards
-      struct coord expectedHeading = normalize_vector(new_coords(sx/2 - robustSelfCx, sy/2 - robustSelfCy));
+      struct coord expectedHeading = normalize_vector(new_coords(sx/2 - ai->st.self->cx, sy/2 - ai->st.self->cy));
+      printf("Expected heading %f %f\n", expectedHeading.x, expectedHeading.y);
+      printf("Starting heading %f %f\n", ai->st.sdx, ai->st.sdy);
+
       if (pow(pow(ai->st.sdx - expectedHeading.x, 2) + pow(ai->st.sdy - expectedHeading.y, 2), 0.5) > 
           getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){ 
+          printf("FLIPPED INIT heading\n");
           ai->st.sdy *= -1;
           ai->st.sdx *= -1;
       }
+
       alreadyVerifiedHeading = 1;
     }
 
@@ -1009,8 +1016,9 @@ int numValidValues[4] = {0, 0, 0, 0};
   int isTurning = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) < 0 ||
                   get_curr_motor_power(MOTOR_DRIVE_LEFT) < 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
 
-  int distributionMultipliers[5] = {9, 6, 3, 2, 1};
+  int distributionMultipliers[5] = {9, 7, 4, 2, 1};
   if (isTurning){ // ignore previous
+    //printf("Bonus belief on latest due to turn\n");
     distributionMultipliers[0] = 15;
   }
 
@@ -1020,7 +1028,12 @@ int numValidValues[4] = {0, 0, 0, 0};
   for (int i = 0; i < 4; i++){
     struct coord latestReading = (struct coord){-1000, -1000};
     if (i == 0 && ai->st.self != NULL){ // headings
-      latestReading = new_coords(ai->st.sdx, ai->st.sdy);
+      if (ignoreNextXHeadings > 0){
+        printf("IGNORING HEADING %f %f\n", ai->st.sdx, ai->st.sdy);
+        ignoreNextXHeadings--;
+      }else{
+        latestReading = new_coords(ai->st.sdx, ai->st.sdy);
+      }
 
     }else if (i == 1 && ai->st.self != NULL){ // our pos 
       latestReading = new_coords(ai->st.self->cx, ai->st.self->cy);
@@ -1126,7 +1139,7 @@ void handleShootingMechanism(struct RoboAI *ai){
     //fflush(stdout);
     int retraction = checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1);
    //printf("Retraction: %d\n", retraction);
-    fflush(stdout);
+    //fflush(stdout);
 
     if (retraction){
         if (lastAppliedToRetract != 0){
@@ -1139,7 +1152,7 @@ void handleShootingMechanism(struct RoboAI *ai){
             lastAppliedToRetract = 1;
             //printf("Does this stall \n");
             //fflush(stdout);
-            BT_motor_port_start(MOTOR_SHOOT_RETRACT, -100 + 40 * hasBeenTouched);
+            BT_motor_port_start(MOTOR_SHOOT_RETRACT, -40);//-60 + 10 * hasBeenTouched);
             //printf("No! \n");
             //fflush(stdout);
         }
@@ -1258,7 +1271,7 @@ int checkEventActive(struct RoboAI *ai, int event){
 
       double units_moved = unit_diff / dir1;
       double result_y = robustSelfCy + units_moved * dir2;
-      result = fabs(result_y - net.y) < 25;
+      result = fabs(result_y - net.y) < 60;
 
     }else if (checkingEvent == EVENT_ballIsNotThatClose){
       return pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 100;
@@ -1275,7 +1288,7 @@ void changeMachineState(struct RoboAI *ai, int new_state){
     ai->st.state = new_state;
     if (new_state == STATE_P_driveToOffset || new_state == STATE_P_driveCarefullyUntilShot || new_state == STATE_S_getBallInPouch || new_state == STATE_S_creepSlowlyToBall){
       lastDrivingPosition = new_coords(ai->st.old_scx, ai->st.old_scy);
-      wrong_path_beleif = -3; // Give us a new iterations to fix up the velocity calculations
+      wrong_path_beleif = 0; // Give us a new iterations to fix up the velocity calculations
     }else{
       thresholdStrictness = PI/15;
     }
@@ -1394,7 +1407,7 @@ void handleStateActions(struct RoboAI *ai){
         if (state == STATE_P_hold) return;
         else if (state == STATE_P_alignWithOffset){
             handleAlignWithGivenOffset(ai, ALIGN_OFFSET);
-            wrong_path_beleif = -3;
+            wrong_path_beleif = 0;
 
         }else if (state == STATE_P_driveToOffset){
             if (robustBallCx != -1000){
@@ -1516,25 +1529,72 @@ void handleStateActions(struct RoboAI *ai){
 
           }else{
             // figure out which dir to turn
+            printf("FORCING NET ALIGNMENT\n");
+            BT_clear_gyro_sensor(GYRO_SENSOR_INPUT);
+
             struct coord net = getNet(ai->st.side);
-            double dir1 = robustHeadingX;
-            double dir2 = robustHeadingY;
+            if (robustHeadingX == 0) robustHeadingX = 0.001;
+            double startHeadingAngle = atan2(robustHeadingY, robustHeadingX);
+            double startGyroAngle = (BT_read_gyro_sensor(GYRO_SENSOR_INPUT) % 360) * PI / 180;
+            printf("original heading and angle: %f %f %f\n", robustHeadingX, robustHeadingY, startHeadingAngle);
+            printf("original gyro angle: %f\n", startGyroAngle);
+
+            double lastDirApplied = 0;
 
             double unit_diff = net.x - robustSelfCx;
-            if (dir1 == 0) dir1= 0.001;
             if (unit_diff == 0) unit_diff = 0.001;
+            while (1){
+              double offsetAngle = (BT_read_gyro_sensor(GYRO_SENSOR_INPUT) %360 )* PI / 180 - startGyroAngle;
+              double resultantAngle = startHeadingAngle + offsetAngle;
+              double dir1 = cos(resultantAngle);
+              double dir2 = sin(resultantAngle);
+              if (dir1 == 0) dir1 = 0.001;
 
-            double units_moved = unit_diff / dir1;
-            double result_y = robustSelfCy + units_moved * dir2;
+              double units_moved = unit_diff / dir1;
+              double result_y = robustSelfCy + units_moved * dir2;
+
+              double powerToApply = 12;
+              if (result_y < net.y) powerToApply *= -1;
+              if (units_moved < 0) powerToApply *= -1;
+              if (robustSelfCx < net.x) powerToApply *= -1;
+              
+              printf("OFFSET ANGLE from original: %f created Y-offset of %f so we apply %f\n", offsetAngle, fabs(result_y - net.y), powerToApply);
+              fflush(stdout);
+
+              // fabs(result_y - net.y)
+              if (fabs(result_y - net.y) < 30 || fabs(powerToApply - lastDirApplied) == 60 || fabs(offsetAngle) > 0.69){
+                // we're now alligned (we may have overshot, but just stop anyways to catch the ball)
+                if (lastDirApplied != 0){
+                  // apply reverse for 50ms to catch
+                  motor_power_async(MOTOR_DRIVE_LEFT, -lastDirApplied);
+                  BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, lastDirApplied, 100);
+                  motor_power_async(MOTOR_DRIVE_LEFT, 0);
+                  motor_power_async(MOTOR_DRIVE_RIGHT, 0);
+
+                  motor_power_async(MOTOR_DRIVE_LEFT, 15);
+                  motor_power_async(MOTOR_DRIVE_RIGHT, 15);
+                }
+
+                printf("NET is probably ALIGNED; finalizing heading as %f %f\n", robustHeadingX, robustHeadingY);
+                robustHeadingX = dir1;
+                robustHeadingY = dir2;
+
+                for (int j = 0; j < 5; j++){
+                  oldValues[0][j] = new_coords(robustHeadingX, robustHeadingY); 
+                }
+                numValidValues[0] = 5;
+                //ignoreNextXHeadings = 2;
+
+                break;
+              }
+
+              motor_power_async(MOTOR_DRIVE_LEFT, powerToApply);
+              motor_power_async(MOTOR_DRIVE_RIGHT, -powerToApply);
+              lastDirApplied = powerToApply;
+            }
+
             
-            double powerToApply = 10;
-            if (result_y < net.y) powerToApply *= -1;
-            if (units_moved < 0) powerToApply *= -1;
-            if (robustSelfCx < net.x) powerToApply *= -1;
-
-            motor_power_async(MOTOR_DRIVE_LEFT, powerToApply);
-            motor_power_async(MOTOR_DRIVE_RIGHT, -powerToApply);
-            wrong_path_beleif = -3;
+            wrong_path_beleif = 0;
             driftingInPouch = 0;
           }
         }
