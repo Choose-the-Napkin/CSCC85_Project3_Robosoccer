@@ -1350,11 +1350,16 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
 }
 
 void handleCurveToGivenLocation(struct RoboAI* ai){
-  // TODO: add backwards movement instead of
-    double curvePower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted);
-    int driveBackwards = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0) != curvePower;
+  struct coord self = new_coords(robustSelfCx, robustSelfCy);
+  struct coord opponent = new_coords(robustEnemyCx, robustEnemyCy);
+  struct coord original_goal = new_coords(wanted_posX, wanted_posY);
+  struct coord goal = calc_goal_with_obstacles(ai, self, original_goal, opponent, 100, 100, 10);
 
-    double dist = pow(pow(robustSelfCx - wanted_posX, 2) + pow(robustSelfCy - wanted_posY, 2), 0.5);
+  // TODO: add backwards movement instead of
+    double curvePower = getPowerNeededToAlign(ai, goal.x, goal.y, allow_backwards_into_wanted);
+    int driveBackwards = getPowerNeededToAlign(ai, goal.x, goal.y, 0) != curvePower;
+
+    double dist = pow(pow(robustSelfCx - goal.x, 2) + pow(robustSelfCy - goal.y, 2), 0.5);
     double pushPower = 100;
     if (dist < 200){
       pushPower = 40;
@@ -1676,6 +1681,58 @@ struct coord normalize_vector(struct coord v) {
   //printf("Normalized %f, %f to %f, %f\n", v.x, v.y, r.x, r.y);
   //fflush(stdout);
   return r;
+}
+
+double vector_distance(struct coord a, struct coord b) {
+  return pow(pow(a.x-b.x, 2) + pow(a.y-b.y, 2), 0.5);
+}
+
+struct coord vector_invert(struct coord v) {
+  return new_coords(v.y, v.x);
+}
+
+int coord_near_wall(struct coord c, double distance) {
+  return c.x < distance || c.x > sx-distance || c.y < distance || c.y > sy-distance;
+}
+
+struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, struct coord goal, struct coord obstacle, double self_radius, double obstacle_radius, double buffer) {
+  // -1 is left, 0 is no obstacle, 1 is to the right
+  struct coord returned_goal;
+  struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
+  struct coord intersect = vector_intersect(position, obstacle, norm_heading);
+  if (vector_distance(intersect, position) < vector_distance(goal, position) && vector_distance(goal, intersect) < vector_distance(position, intersect) && vector_distance(intersect, obstacle) < self_radius + obstacle_radius) {
+    // Obstacle is in the way
+    struct coord offset_1, offset_2; //  Left and right of obstacle on 
+    offset_1 = add_coords(obstacle, scale_coords(vector_invert(norm_heading), self_radius+obstacle_radius+buffer)); // Buffer adds more distance between circles
+    offset_2 = add_coords(obstacle, scale_coords(vector_invert(norm_heading), -(self_radius+obstacle_radius+buffer)));
+    if (coord_near_wall(offset_1, self_radius)) {
+      returned_goal = offset_2;
+    } else if (coord_near_wall(offset_2, self_radius)) {
+      returned_goal = offset_1;
+    } else if (vector_distance(offset_1, goal) < vector_distance(offset_2, goal)) {
+      returned_goal = offset_1;
+    } else {
+      returned_goal = offset_2;
+    }
+  } else {
+    returned_goal = goal;
+  }
+
+  addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
+  return returned_goal;
+}
+
+struct coord vector_intersect(struct coord ac, struct coord bc, struct coord s) {
+  // A is us and B is the obstacle
+  // But they are exchangeable
+  double r; // variable in r(s) + ac line
+  double det = (s.y*s.y) - (s.x*s.x);
+  r = -(s.x*(bc.x-ac.x)+s.y*(bc.y-ac.y))/det;
+  return add_coords(scale_coords(s, r), ac);
+}
+
+struct coord coords_from_blob(struct blob *b) {
+  return new_coords(b->cx, b->cy);
 }
 
 struct coord getNet(int side) {
