@@ -619,8 +619,20 @@ void AI_calibrate(struct RoboAI *ai, struct blob *blobs)
  * AI state machine - this is where you will implement your soccer
  * playing logic
  * ************************************************************************/
-double oldXHeading = -1000.0;
-double oldYHeading = -1000.0;
+
+// ============== Variables ==============
+int TRANSITION_TABLE[300][NUMBER_OF_EVENTS * 2]; // %2==0 means we don't want event to happen, odd means we do
+char motor_powers[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+// headings, self pos, ball pos, enemy pos
+struct coord oldValues[4][3]; 
+int numValidValues[4] = {0, 0, 0, 0};
+int closingDistanceToBall = 0; // 1 means we are getting closer, -1 means further, 0 means maintaining distance
+int certaintyOfClosingDist = 0; // How many frames in a row we've observed getting closer/further
+
+// robust values
+double robustHeadingX = -1000.0;
+double robustHeadingY = -1000.0;
 double robustBallCx = -1000;
 double robustBallCy = -1000;
 double robustSelfCx = -1000;
@@ -628,11 +640,11 @@ double robustSelfCy = -1000;
 double robustEnemyCx = -1000;
 double robustEnemyCy = -1000;
 
-// ============== Variables ==============
-int TRANSITION_TABLE[300][NUMBER_OF_EVENTS * 2]; // %2==0 means we don't want event to happen, odd means we do
-char motor_powers[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
+// extra things
 int wanted_posX = -1;
 int wanted_posY = -1;
+int allow_backwards_into_wanted = 0;
+int alreadyVerifiedHeading = 0;
 double thresholdStrictness;
 int takeShot = 0;
 int numVeryHugeTurn = 0;
@@ -806,7 +818,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     } else{ 
       // TODO: Add initial movement stage to verify heading before potentially doing a 180 flip
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;//STATE_S_curveToShootingPosition;
+      TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall; //STATE_S_curveToShootingPosition;
 
       // Attack states
       // TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_think;
@@ -814,17 +826,24 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
 
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
-      //TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_ballMoving* 2 + 1] = STATE_S_curveToShootingPosition;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_allignedWithPosition* 2 + 1] = STATE_S_getBallInPouch;
-      //TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_atWantedPosition* 2 + 0] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_distanceToBallIncreasing* 2 + 1] = STATE_S_think;
 
 
-      TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballIsConsiderablyFar* 2 + 1] = STATE_S_curveToBall;
+      //TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballIsNotThatClose* 2 + 1] = STATE_S_curveToBall;
+      // TODO: Check that we are making progress with the ball 
       TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_allignedWithPosition * 2 + 0] = STATE_S_alignRobotToShoot;
+      TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_atWantedPosition * 2 + 1] = STATE_S_OrientBallandShoot;
+      TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballSeen * 2 + 0] = STATE_S_OrientBallandShoot;
+
+      // ball got lost inside our pouch
+      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_distanceToBallIncreasing* 2 + 1] = STATE_S_think; 
+      // TODO: Check if dist is stationary during shoot mode and assume ball is on our side!
+
 
       // STATE_S_runAtBallAndShoot will automatically curve to ball and go back to think after making a shot
       //TRANSITION_TABLE[STATE_S_runAtBallAndShoot][EVENT_robotIsStuckOnEnemy* 2 + 1] = STATE_S_FIGHT;
-      //TRANSITION_TABLE[STATE_S_runAtBallAndShoot][EVENT_ballIsConsiderablyFar * 2 + 1] = STATE_S_think;
+      //TRANSITION_TABLE[STATE_S_runAtBallAndShoot][EVENT_ballIsNotThatClose * 2 + 1] = STATE_S_think;
 
       // Defense states
       TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
@@ -836,8 +855,14 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       // creep state aligns and moves forward;
       TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithBallBeforeCreep;
-      //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_ballMoving* 2 + 1] = STATE_S_think;
+      // TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_ballMoving* 2 + 1] = STATE_S_think;
     } 
+
+    for (int i = 0; i < 4; i++){
+      for (int j = 0; j < 3; j++){
+        oldValues[i][j] = new_coords(0, 0);
+      }
+    }
   }
  }
  else
@@ -863,8 +888,10 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
   //fprintf(stderr,"Just trackin'!\n");	// bot, opponent, and ball.
     track_agents(ai,blobs);		// Currently, does nothing but endlessly track
     
+    updateRobustValues(ai);
     fixAIHeadingDirection(ai);
-    updateRobustPositions(ai);
+
+    //printf("Finished value updates\n");
 
     // Update state based on transition
     for (int i = 0; i < NUMBER_OF_EVENTS * 2; i++){
@@ -877,12 +904,15 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
         }
     }
 
+    //printf("Finished event checks\n");
     // Call function for state action
     handleStateActions(ai);
 
+    //printf("Finished state actions\n");
+
     // Call function to retract shooting mechanism or release
     handleShootingMechanism(ai);
-    
+    //printf("Finished shooting mechanism updates\n");
   }
 }
 
@@ -903,12 +933,12 @@ int wrong_path_beleif = 0;
 struct coord lastDrivingPosition;
 
 void fixAIHeadingDirection(struct RoboAI *ai){
-    if (ai->st.self != NULL && oldXHeading!= -1000){
+    if (ai->st.self != NULL && robustHeadingX!= -1000){
       int isDriving = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
       int isTurning = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) < 0 ||
                       get_curr_motor_power(MOTOR_DRIVE_LEFT) < 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
       
-      if (pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
+      if (pow(pow(ai->st.sdx - robustHeadingX, 2) + pow(ai->st.sdy - robustHeadingY, 2), 0.5) > 
           getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){ 
           // Too big of a jump, assume its a flip or rando jump and flip it
           ai->st.sdy *= -1;
@@ -916,12 +946,12 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         }
 
       // Detect outlier jump
-      if (!isTurning && pow(pow(ai->st.sdx - oldXHeading, 2) + pow(ai->st.sdy - oldYHeading, 2), 0.5) > 
+      if (!isTurning && pow(pow(ai->st.sdx - robustHeadingX, 2) + pow(ai->st.sdy - robustHeadingY, 2), 0.5) > 
           getExpectedUnitCircleDistance(PI * 1.0 / 4.0)){ 
         if (numVeryHugeTurn >= 3){ 
           // 3rd frame in a row we're reading far from heading, go back to trusting it
-          ai->st.sdy = oldYHeading;
-          ai->st.sdx = oldXHeading;
+          ai->st.sdy = robustHeadingY;
+          ai->st.sdx = robustHeadingX;
         }
         numVeryHugeTurn += 1;
       }else{
@@ -956,27 +986,111 @@ void fixAIHeadingDirection(struct RoboAI *ai){
 
     }
 
-    // Recall headings so we can continue to ignore flips
-    oldXHeading = ai->st.sdx;
-    oldYHeading = ai->st.sdy;
+    if (!alreadyVerifiedHeading && ai->st.self != NULL){ // assume initial orientation is facing inwards
+      struct coord expectedHeading = normalize_vector(new_coords(sx/2 - robustSelfCx, sy/2 - robustSelfCy));
+      if (pow(pow(ai->st.sdx - expectedHeading.x, 2) + pow(ai->st.sdy - expectedHeading.y, 2), 0.5) > 
+          getExpectedUnitCircleDistance(PI * 1.0 / 2.0)){ 
+          ai->st.sdy *= -1;
+          ai->st.sdx *= -1;
+      }
+      alreadyVerifiedHeading = 1;
+    }
+
+    // Set headings so we can continue to ignore flips
+   //printf("Setting heading to %f %f\n", ai->st.sdx, ai->st.sdy);
 }
 
-void updateRobustPositions(struct RoboAI *ai){
-  if (ai->st.ball != NULL){
-    robustBallCx = ai->st.ball->cx;
-    robustBallCy = ai->st.ball->cy;
+void updateRobustValues(struct RoboAI *ai){
+  /*struct coord oldValues[4][3]; 
+int numValidValues[4] = {0, 0, 0, 0};
+*/
+  int isTurning = get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) < 0 ||
+                  get_curr_motor_power(MOTOR_DRIVE_LEFT) < 0 && get_curr_motor_power(MOTOR_DRIVE_RIGHT) > 0;
+
+  int distributionMultipliers[3] = {8, 5, 2};
+  struct coord prevBalReadings = new_coords(robustBallCx, robustBallCy);
+  struct coord prevSelfReadings = new_coords(robustSelfCx, robustSelfCy);
+
+  for (int i = 0; i < 4; i++){
+    struct coord latestReading = (struct coord){-1000, -1000};
+    if (i == 0 && ai->st.self != NULL){ // headings
+      if (isTurning){ // ignore previous
+        numValidValues[i] = 0;
+      }
+
+      latestReading = new_coords(ai->st.sdx, ai->st.sdy);
+    }else if (i == 1 && ai->st.self != NULL){ // our pos 
+      latestReading = new_coords(ai->st.self->cx, ai->st.self->cy);
+
+    }else if (i == 2 && ai->st.opp != NULL){ // their pos 
+      latestReading = new_coords(ai->st.opp->cx, ai->st.opp->cy);
+
+    }else if (i == 3 && ai->st.ball != NULL){ // ball pos 
+      latestReading = new_coords(ai->st.ball->cx, ai->st.ball->cy);
+    }
+
+    if (latestReading.x != -1000){
+      // shift everything
+      oldValues[i][2] = oldValues[i][1];
+      oldValues[i][1] = oldValues[i][0];
+      oldValues[i][0] = latestReading;
+
+      if (numValidValues[i] < 3) numValidValues[i] += 1;
+      struct coord averagedResult = new_coords(0, 0);
+      double totalAdded = 0;
+
+      for (int j = 0; j < numValidValues[i]; j++){
+        totalAdded += distributionMultipliers[j];
+        averagedResult =  (struct coord){averagedResult.x + oldValues[i][j].x * distributionMultipliers[j], 
+                                        averagedResult.y + oldValues[i][j].y * distributionMultipliers[j]};
+      }
+
+      averagedResult.x = averagedResult.x/totalAdded;
+      averagedResult.y = averagedResult.y/totalAdded;
+
+      // set robust values
+      if (i == 0){ // headings
+        averagedResult = normalize_vector(averagedResult);
+        robustHeadingX = averagedResult.x;
+        robustHeadingY = averagedResult.y;
+
+      }else if (i == 1){ // our pos 
+        robustSelfCx = averagedResult.x;
+        robustSelfCy = averagedResult.y;
+
+      }else if (i == 2){ // their pos 
+      
+        robustEnemyCx = averagedResult.x;
+        robustEnemyCy = averagedResult.y;
+       //printf("DETECTED ENEMY");
+        fflush(stdout);
+
+      }else if (i == 3){ // ball pos 
+        robustBallCx = averagedResult.x;
+        robustBallCy = averagedResult.y;
+      }
+    }
   }
 
-  if (ai->st.self != NULL){
-    robustSelfCx = ai->st.self->cx;
-    robustSelfCy = ai->st.self->cy;
+
+  struct coord curBalReadings = new_coords(robustBallCx, robustBallCy);
+  struct coord curSelfReadings = new_coords(robustSelfCx, robustSelfCy);
+
+  double oldDistToBall = distance_between_points(prevBalReadings, prevSelfReadings);
+  double newDistToBall = distance_between_points(curBalReadings, curSelfReadings);
+
+  int result = 0;
+  if (fabs(newDistToBall - oldDistToBall) > 10){
+    if (newDistToBall < oldDistToBall) result = 1; // getting closer
+    else result = -1; // getting further
   }
 
-  if (ai->st.opp != NULL){
-    robustEnemyCx = ai->st.opp->cx;
-    robustEnemyCy = ai->st.opp->cy;
-    printf("DETECTED ENEMY");
-    fflush(stdout);
+  if (result == closingDistanceToBall){
+    certaintyOfClosingDist++;
+
+  }else{
+    closingDistanceToBall = result;
+    certaintyOfClosingDist = 1;
   }
 }
 
@@ -1005,8 +1119,8 @@ void handleShootingMechanism(struct RoboAI *ai){
     //printf("Maintaining shot\n");
     //fflush(stdout);
     int retraction = checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1);
-    //printf("Retraction: %d\n", retraction);
-    //fflush(stdout);
+   //printf("Retraction: %d\n", retraction);
+    fflush(stdout);
 
     if (retraction){
         if (lastAppliedToRetract != 0){
@@ -1026,9 +1140,9 @@ void handleShootingMechanism(struct RoboAI *ai){
   }
 }
 
-double getPowerNeededToAlign(struct RoboAI *ai, double wanted_posX, double wanted_posY){
-    double dir1 = ai->st.sdx;
-    double dir2 = ai->st.sdy;
+double getPowerNeededToAlign(struct RoboAI *ai, double wanted_posX, double wanted_posY, int allowBackwardsFacing){
+    double dir1 = robustHeadingX;
+    double dir2 = robustHeadingY;
 
     double unit_diff = wanted_posX - robustSelfCx;
     if (dir1 == 0) dir1= 0.001;
@@ -1038,7 +1152,7 @@ double getPowerNeededToAlign(struct RoboAI *ai, double wanted_posX, double wante
 
     struct coord expectedVector = normalize_vector(new_coords(wanted_posX - robustSelfCx, wanted_posY - robustSelfCy));
     double vectorOffsets = pow(pow(expectedVector.x - dir1, 2) + pow(expectedVector.y - dir2, 2), 0.5);
-    if (units_moved > 0 && vectorOffsets < getExpectedUnitCircleDistance(thresholdStrictness)){
+    if ((allowBackwardsFacing || units_moved > 0) && vectorOffsets < getExpectedUnitCircleDistance(thresholdStrictness)){
       return 0.0;
     }
 
@@ -1052,7 +1166,14 @@ double getPowerNeededToAlign(struct RoboAI *ai, double wanted_posX, double wante
     double total_power = 25*vectorOffsets;
     if (total_power < 9) total_power = 9;
     if (total_power > 30) total_power = 30;
-    if (units_moved < 0) total_power = 45 - (total_power*0.5);
+    if (units_moved < 0){
+      if (allowBackwardsFacing){
+        dir *= -1;
+      }else{
+        total_power = 45 - (total_power*0.5);
+      }
+    }
+
     return total_power * dir;
 }
 
@@ -1063,14 +1184,15 @@ int checkEventActive(struct RoboAI *ai, int event){
 
     if (checkingEvent == EVENT_carSeen){
         result = ai->st.self != NULL;
-
+    }else if (checkingEvent == EVENT_ballSeen){
+        result = ai->st.self != NULL;
     }else if (checkingEvent == EVENT_atWantedPosition){
         // Add distance checker
         double dist = pow(pow(robustSelfCx - wanted_posX, 2) + pow(robustSelfCy - wanted_posY, 2), 0.5);
         result = dist <= 40;
 
     }else if (checkingEvent == EVENT_allignedWithPosition){
-        result = getPowerNeededToAlign(ai, wanted_posX, wanted_posY) == 0.0;
+        result = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted) == 0.0;
         
     }else if (checkingEvent == EVENT_ballIsInCage){
         // Read colour sensor reflectance
@@ -1094,25 +1216,30 @@ int checkEventActive(struct RoboAI *ai, int event){
 
     }else if (checkingEvent == EVENT_weWinRaceToBall){
       double ourDistToBall = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5);
-      double thierDistToBall = pow(pow(robustEnemyCx - robustBallCx, 2) + pow(robustEnemyCy - robustBallCy, 2), 0.5);
-      
-      result = ourDistToBall < thierDistToBall * 1.3;
+      double thierDistToBall = 10000; //pow(pow(robustEnemyCx - robustBallCx, 2) + pow(robustEnemyCy - robustBallCy, 2), 0.5);
+      if (ai->st.state < STATE_S_DEFEND){ // attack modes
+        result = ourDistToBall < thierDistToBall * 1.3;
+        
+      }else if (ai->st.state < STATE_S_FIGHT){ // defense mode, make it more likely to stay in defense to avoid flip flops
+        result = ourDistToBall < thierDistToBall;
+
+      }else{ // bulldog modes
+
+      }
       // TODO: add check for bull fight
-      printf("We win ball race: %d\n", result);
+     //printf("We win ball race: %d\n", result);
       fflush(stdout);
       
-    }else if (checkingEvent == EVENT_ballMoving){
-        result = 0;
-        // TODO: implement
+    }else if (checkingEvent == EVENT_ballDistanceIsStationary){
+        result = closingDistanceToBall == 0 && certaintyOfClosingDist >= 3;
 
-    }else if (checkingEvent == EVENT_headingAwayFromwantedPosition){
-        result = 1;
-        // TODO: implement
+    }else if (checkingEvent == EVENT_distanceToBallIncreasing){
+        result = closingDistanceToBall == -1 && certaintyOfClosingDist >= 5;
 
     }else if (checkingEvent == EVENT_alignedToScore){
       struct coord net = getNet(ai->st.side);
-      double dir1 = ai->st.sdx;
-      double dir2 = ai->st.sdy;
+      double dir1 = robustHeadingX;
+      double dir2 = robustHeadingY;
 
       double unit_diff = net.x - robustBallCx;
       if (dir1 == 0) dir1= 0.001;
@@ -1120,10 +1247,10 @@ int checkEventActive(struct RoboAI *ai, int event){
 
       double units_moved = unit_diff / dir1;
       double result_y = robustSelfCy + units_moved * dir2;
-      result = fabs(result_y - net.y) < 50;
+      result = fabs(result_y - net.y) < 100;
 
-    }else if (checkingEvent == EVENT_ballIsConsiderablyFar){
-      return pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 300;
+    }else if (checkingEvent == EVENT_ballIsNotThatClose){
+      return pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 100;
     }
 
     return (result == wantedResult);
@@ -1155,8 +1282,17 @@ void changeMachineState(struct RoboAI *ai, int new_state){
       ourNetLoc.x += d * 125;
       wanted_posX = ourNetLoc.x;
       wanted_posY = ourNetLoc.y;
-      printf("Net offset; %d %d\n", wanted_posX, wanted_posY);
+      allow_backwards_into_wanted = 1;
+     //printf("Net offset; %d %d\n", wanted_posX, wanted_posY);
+    }else{
+      allow_backwards_into_wanted = 0;
     }
+
+    if (new_state == STATE_S_getBallInPouch){
+      closingDistanceToBall = 1;
+      certaintyOfClosingDist = 1;
+    }
+    
     motor_power_async(MOTOR_DRIVE_LEFT, 0);
     motor_power_async(MOTOR_DRIVE_RIGHT, 0);
 
@@ -1175,15 +1311,17 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
   }
 
   if (wanted_posX != -1 && wanted_posY != -1){
-      double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY);
-      printf("DECIDING TO LINE UP WITH POWER %f \n", power);
+      double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted);
+     //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
       motor_power_async(MOTOR_DRIVE_LEFT, power);
       motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
   }
 }
 
 void handleCurveToGivenLocation(struct RoboAI* ai){
-    double curvePower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY);
+    double curvePower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted);
+    int driveBackwards = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0) != curvePower;
+
     double dist = pow(pow(robustSelfCx - wanted_posX, 2) + pow(robustSelfCy - wanted_posY, 2), 0.5);
     double pushPower = dist*60/500.0;
     if (pushPower > 65) pushPower = 65;
@@ -1199,11 +1337,14 @@ void handleCurveToGivenLocation(struct RoboAI* ai){
       motor_power_async(MOTOR_DRIVE_RIGHT, pushPower + 15); 
 
     }else{
-      double dir = 1;
-      if (abs_curve >= 40){ // we can get to offset backwards
+      double dir = (1 - driveBackwards)*2 - 1;
+
+      /*
+      if (abs_curve >= 40){ // we can get to offset by moving backwards
         dir = -1;
         pushPower -= 5;
       }
+      */
 
       //double res = 
       motor_power_async(MOTOR_DRIVE_LEFT, dir*(pushPower + curvePower));
@@ -1280,14 +1421,14 @@ void handleStateActions(struct RoboAI *ai){
           }
 
           if (wanted_posX != -1 && wanted_posY != -1){
-              double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY);
+              double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
               if (power >= 30){
                 driftingInPouch = 0;
-                printf("START THE DRIFT from odd catch??\n");
+               //printf("START THE DRIFT from odd catch??\n");
                 fflush(stdout);
                 changeMachineState(ai, STATE_S_OrientBallandShoot);
               }else{
-                printf("DECIDING TO LINE UP WITH POWER %f \n", power);
+               //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
                 motor_power_async(MOTOR_DRIVE_LEFT, power);
                 motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
               }
@@ -1304,7 +1445,7 @@ void handleStateActions(struct RoboAI *ai){
 
           if (checkEventActive(ai, EVENT_ballIsInCage * 2 + 1)){
             driftingInPouch = 0;
-            printf("START THE DRIFT??\n");
+           //printf("START THE DRIFT??\n");
             fflush(stdout);
             changeMachineState(ai, STATE_S_OrientBallandShoot);
           }
@@ -1318,7 +1459,7 @@ void handleStateActions(struct RoboAI *ai){
           wanted_posX = robustBallCx;
           wanted_posY = robustBallCy;
           struct coord net = getNet(ai->st.side);
-          double curvePowerToNet = getPowerNeededToAlign(ai, net.x, net.y);
+          double curvePowerToNet = getPowerNeededToAlign(ai, net.x, net.y, 0);
 
           if (curvePowerToNet == 0 || checkEventActive(ai, EVENT_alignedToScore *2 + 1)){
             // We are probably lined up to score
@@ -1336,14 +1477,14 @@ void handleStateActions(struct RoboAI *ai){
             }else{
               printf("Slowing down to allow shots!!\n");
               fflush(stdout);
-              motor_power_async(MOTOR_DRIVE_LEFT, 10);
-              motor_power_async(MOTOR_DRIVE_RIGHT, 10);
+              motor_power_async(MOTOR_DRIVE_LEFT, 17);
+              motor_power_async(MOTOR_DRIVE_RIGHT, 17);
               takeShot = 0;
               driftingInPouch++;
 
-              if (driftingInPouch >= 100){
-                //ballWasSeenInPouch = 0;
-                //driftingInPouch = 0;
+              if (driftingInPouch >= 5 && checkEventActive(ai, EVENT_ballDistanceIsStationary * 2 + 1) && checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)){
+                printf("BALL IS ON SIDE?\n");
+                driftingInPouch = 0;
                 changeMachineState(ai, STATE_S_think); // figure out whats going on
               }
             }
@@ -1351,7 +1492,7 @@ void handleStateActions(struct RoboAI *ai){
           }else{
             // we're probably not well alligned for a shot 
             double powerToApply = 10 * fabs(curvePowerToNet) / curvePowerToNet;
-            printf("Orienting shot with %f!\n", powerToApply);
+           //printf("Orienting shot with %f!\n", powerToApply);
             motor_power_async(MOTOR_DRIVE_LEFT, powerToApply);
             motor_power_async(MOTOR_DRIVE_RIGHT, -powerToApply);
             wrong_path_beleif = -3;
@@ -1466,4 +1607,8 @@ struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset, str
 
 double getExpectedUnitCircleDistance(double angleOffset){ // MAX half rotation (ie pi)
     return pow(pow(1 - cos(angleOffset), 2) + pow(0 - sin(angleOffset), 2), 0.5);
+}
+
+double distance_between_points(struct coord p1, struct coord p2){
+  return pow(pow(p1.x - p2.x, 2) + pow (p1.y - p2.y, 2), 0.5);
 }
