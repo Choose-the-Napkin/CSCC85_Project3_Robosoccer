@@ -1702,7 +1702,8 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
   struct coord returned_goal;
   struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
   struct coord intersect = vector_intersect(position, obstacle, norm_heading);
-  if (vector_distance(intersect, position) < vector_distance(goal, position) && vector_distance(goal, intersect) < vector_distance(position, intersect) && vector_distance(intersect, obstacle) < self_radius + obstacle_radius) {
+  double intersect_to_goal_ratio = vector_distance(intersect, position) / vector_distance(goal, position);
+  if (intersect_to_goal_ratio <= 1 && intersect_to_goal_ratio > 0 && vector_distance(goal, intersect) < vector_distance(position, intersect) && vector_distance(intersect, obstacle) < self_radius + obstacle_radius + buffer) {
     // Obstacle is in the way
     struct coord offset_1, offset_2; //  Left and right of obstacle on 
     offset_1 = add_coords(obstacle, scale_coords(vector_invert(norm_heading), self_radius+obstacle_radius+buffer)); // Buffer adds more distance between circles
