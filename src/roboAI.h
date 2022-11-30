@@ -226,6 +226,8 @@ struct coord normalize_vector(struct coord v);
 struct coord getNet(int side);
 struct coord new_coords(double x, double y);
 struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset, struct coord net);
+struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, struct coord goal, struct coord obstacle, double self_radius, double obstacle_radius, double buffer);
+struct coord vector_intersect(struct coord ac, struct coord bc, struct coord s);
 double distance_between_points(struct coord p1, struct coord p2);
 int motor_power_async(char port_id, char power);
 double getExpectedUnitCircleDistance(double angleOffset);
