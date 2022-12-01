@@ -644,7 +644,6 @@ double robustEnemyCy = -1000;
 // extra things
 int wanted_posX = -1;
 int wanted_posY = -1;
-int allow_backwards_into_wanted = 0;
 int alreadyVerifiedHeading = 0;
 double thresholdStrictness;
 int takeShot = 0;
@@ -825,7 +824,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
-      // TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_think;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
@@ -899,8 +898,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
    the bot is supposed to be doing.
   *****************************************************************************/
   //fprintf(stderr,"Just trackin'!\n");	// bot, opponent, and ball.
-    track_agents(ai,blobs);		// Currently, does nothing but endlessly track
-    
+    track_agents(ai,blobs);
     fixAIHeadingDirection(ai);
     updateRobustValues(ai);
 
@@ -919,7 +917,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
     //printf("Finished event checks\n");
     // Call function for state action
-    handleStateActions(ai);
+    handleStateActions(ai, blobs);
 
     //printf("Finished state actions\n");
 
@@ -1131,9 +1129,7 @@ void handleShootingMechanism(struct RoboAI *ai){
 
     // Keep pulling until not retract
     BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 500);
-    takeShot = 0;
     lastAppliedToRetract = 0;
-    hasBeenTouched = 10;
     BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
 
     if (ai->st.state >= 200){
@@ -1143,6 +1139,11 @@ void handleShootingMechanism(struct RoboAI *ai){
     }else{
       changeMachineState(ai, STATE_S_think);
     }
+
+    BT_motor_port_start(MOTOR_SHOOT_RETRACT, -70);
+    takeShot = 0;
+    hasBeenTouched = 3;
+    lastAppliedToRetract = 2;
 
   }else{ // Maintain retracted
     //printf("Maintaining shot\n");
@@ -1163,8 +1164,6 @@ void handleShootingMechanism(struct RoboAI *ai){
         lastAppliedToRetract = 1;
 
       }else if (hasBeenTouched > 0 && lastAppliedToRetract != 2){
-        BT_motor_port_start(MOTOR_SHOOT_RETRACT, -100);
-        lastAppliedToRetract = 2;
         hasBeenTouched--;
 
       }
@@ -1200,7 +1199,7 @@ double getPowerNeededToAlign(struct RoboAI *ai, double wanted_posX, double wante
     if (robustSelfCx < wanted_posX) dir *= -1;
 
     double total_power = 25*vectorOffsets;
-    if (total_power < 9) total_power = 9;
+    if (total_power < 8) total_power = 8;
     if (total_power > 30) total_power = 30;
     if (units_moved < 0){
       if (allowBackwardsFacing){
@@ -1228,7 +1227,7 @@ int checkEventActive(struct RoboAI *ai, int event){
         result = dist <= 40;
 
     }else if (checkingEvent == EVENT_allignedWithPosition){
-        double neededPower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted);
+        double neededPower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
         result = neededPower == 0.0;
         if (ai->st.state == STATE_S_getBallInPouch && neededPower > 20){ // when we're close enough that it might get wonky
           result = 1;
@@ -1255,17 +1254,22 @@ int checkEventActive(struct RoboAI *ai, int event){
         // TODO: implement
 
     }else if (checkingEvent == EVENT_weWinRaceToBall){
-      double ourDistToBall = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5);
-      double thierDistToBall = 10000; //pow(pow(robustEnemyCx - robustBallCx, 2) + pow(robustEnemyCy - robustBallCy, 2), 0.5);
-      if (ai->st.state < STATE_S_DEFEND){ // attack modes
-        result = ourDistToBall < thierDistToBall * 1.3;
-        
-      }else if (ai->st.state < STATE_S_FIGHT){ // defense mode, make it more likely to stay in defense to avoid flip flops
+      struct coord ball_loc = new_coords(robustBallCx, robustBallCy);
+      struct coord our_loc = new_coords(robustSelfCx, robustSelfCy);
+      struct coord enemy_loc = new_coords(robustEnemyCx, robustEnemyCy);
+
+      double ourDistToBall = distance_between_points(our_loc, ball_loc);
+      double thierDistToBall = distance_between_points(enemy_loc, ball_loc);
+      
+      if (ai->st.state < STATE_S_DEFEND){ // attack modes, give us 150% confidence over them
+        if (ai->st.side == 0 && robustSelfCx > robustBallCx + 50 || ai->st.side == 1 && robustSelfCx <  robustBallCx - 50) result = 0;
+        else if (ourDistToBall < 250) result = 1;
+        else result = ourDistToBall < thierDistToBall * 1.5;
+
+      }else { // defense mode, make it more likely to stay in defense to avoid flip flops
         result = ourDistToBall < thierDistToBall;
-
-      }else{ // bulldog modes
-
       }
+
       // TODO: add check for bull fight
      //printf("We win ball race: %d\n", result);
       fflush(stdout);
@@ -1328,7 +1332,7 @@ void changeMachineState(struct RoboAI *ai, int new_state){
         wanted_posX = -1;
         wanted_posY = -1;
         if (new_state == STATE_S_alignRobotToShoot || new_state == STATE_P_alignWithBall || new_state == STATE_S_alignWithDiversion) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
-        else thresholdStrictness = PI/20;
+        //else thresholdStrictness = PI/20;
     }
     
     if (new_state == STATE_S_curveToInterceptBall){
@@ -1337,10 +1341,10 @@ void changeMachineState(struct RoboAI *ai, int new_state){
       ourNetLoc.x += d * 125;
       wanted_posX = ourNetLoc.x;
       wanted_posY = ourNetLoc.y;
-      allow_backwards_into_wanted = 1;
-     //printf("Net offset; %d %d\n", wanted_posX, wanted_posY);
-    }else{
-      allow_backwards_into_wanted = 0;
+      printf("Net offset; %d %d\n", wanted_posX, wanted_posY);
+
+      ai->DPhead = addPoint(ai->DPhead, ourNetLoc.x, ourNetLoc.y, 160, 32, 240);
+
     }
 
     if (new_state == STATE_S_getBallInPouch){
@@ -1370,7 +1374,7 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
   }
 
   if (wanted_posX != -1 && wanted_posY != -1){
-      double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, allow_backwards_into_wanted);
+      double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
      //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
       motor_power_async(MOTOR_DRIVE_LEFT, power);
       motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
@@ -1379,7 +1383,6 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
 
 void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_wanted){
   struct coord self = new_coords(robustSelfCx, robustSelfCy);
-  struct coord opponent = new_coords(robustEnemyCx, robustEnemyCy);
   struct coord goal = new_coords(wanted_posX, wanted_posY);
 
   // TODO: add backwards movement instead of
@@ -1389,9 +1392,9 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
   double dist = distance_between_points(self, goal);
   double pushPower = 100;
   if (dist < 200){
-    pushPower = 40;
+    pushPower = 60;
   }else if (dist < 300){
-    pushPower = 65;
+    pushPower = 75;
   }
 
   double abs_curve = fabs(curvePower);
@@ -1401,13 +1404,6 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
 
   }else{
     double dir = (1 - driveBackwards)*2 - 1;
-
-    /*
-    if (abs_curve >= 40){ // we can get to offset by moving backwards
-      dir = -1;
-      pushPower -= 5;
-    }
-    */
     
     double powerL = pushPower;
     double powerR = pushPower;
@@ -1420,9 +1416,16 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
   }
 }
 
-void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int typeOfOffset, double turnPower) {
-  //struct coord net = getNet(ai->st.side);
+void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int typeOfOffset, double turnPower, struct RoboAI *ai, struct blob *blobs) {
+  // pause everything and get next frame to update readings
+  motor_power_async(MOTOR_DRIVE_LEFT, 0);
+  motor_power_async(MOTOR_DRIVE_RIGHT, 0);
   BT_clear_gyro_sensor(GYRO_SENSOR_INPUT);
+  track_agents(ai,blobs);
+  fixAIHeadingDirection(ai);
+  updateRobustValues(ai);
+
+  // now start the allignment
   if (robustHeadingX == 0) robustHeadingX = 0.001;
   double startHeadingAngle = atan2(robustHeadingY, robustHeadingX);
   double startGyroAngle = (BT_read_gyro_sensor(GYRO_SENSOR_INPUT) % 360) * PI / 180;
@@ -1492,7 +1495,7 @@ void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int t
 }
 
 double ALIGN_OFFSET = -250; // TODO: make it dynamic 
-void handleStateActions(struct RoboAI *ai){
+void handleStateActions(struct RoboAI *ai, struct blob *blobs){
     // Returns 1 if we want to asynchronously shoot
     int state = ai->st.state;
     if (state >= 200){
@@ -1531,7 +1534,6 @@ void handleStateActions(struct RoboAI *ai){
                 takeShot = 1;
             }
 
-            // Drive at 15
             motor_power_async(MOTOR_DRIVE_LEFT, 17);
             motor_power_async(MOTOR_DRIVE_RIGHT, 17);
         }
@@ -1549,7 +1551,7 @@ void handleStateActions(struct RoboAI *ai){
           }
 
         }else if (state == STATE_S_curveToInterceptBall){
-          handleCurveToGivenLocation(ai, 1);
+          handleCurveToGivenLocation(ai, 0);
 
         }else if (state == STATE_S_alignRobotToShoot){
           if (robustBallCx != -1000){
@@ -1565,7 +1567,7 @@ void handleStateActions(struct RoboAI *ai){
                 changeMachineState(ai, STATE_S_OrientBallandShoot);
               }else{
                //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
-                //forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, -power);
+                //forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, 15, ai, blobs);
                 motor_power_async(MOTOR_DRIVE_LEFT, power);
                 motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
               }
@@ -1637,8 +1639,9 @@ void handleStateActions(struct RoboAI *ai){
           }else{
             // figure out which dir to turn
             printf("FORCING NET ALIGNMENT\n");
-            forceAllignmentWithGyro(getNet(ai->st.side), 30, 1, 15);
-            driftingInPouch = 0;
+            forceAllignmentWithGyro(getNet(ai->st.side), 30, 1, 15, ai, blobs);
+            changeMachineState(ai, STATE_S_getBallInPouch);
+            //driftingInPouch = 0;
           }
         }
         
@@ -1650,8 +1653,8 @@ void handleStateActions(struct RoboAI *ai){
           }
 
           if (wanted_posX != -1 && wanted_posY != -1){
-              motor_power_async(MOTOR_DRIVE_LEFT, 12);
-              motor_power_async(MOTOR_DRIVE_RIGHT, 12);
+              motor_power_async(MOTOR_DRIVE_LEFT, 20);
+              motor_power_async(MOTOR_DRIVE_RIGHT, 20);
           }
           
         }
@@ -1716,7 +1719,7 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
   struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
   struct coord intersect = vector_intersect(position, obstacle, norm_heading);
   double intersect_to_goal_ratio = vector_distance(intersect, position) / vector_distance(goal, position);
-  double min_intersect_to_goal_ratio = (vector_distance(scale_coords(norm_heading, self_radius), goal)/vector_distance(goal, position));
+  double min_intersect_to_goal_ratio = (vector_distance(scale_coords(norm_heading, self_radius), position)/vector_distance(goal, position));
   ai->DPhead = addPoint(ai->DPhead, intersect.x, intersect.y, 160, 32, 240);
 
   if (intersect_to_goal_ratio <= 1 && intersect_to_goal_ratio > min_intersect_to_goal_ratio && vector_distance(intersect, obstacle) < self_radius + obstacle_radius + buffer) {

@@ -219,7 +219,7 @@ struct displayList *clearDP(struct displayList *head);
 
 int checkEventActive(struct RoboAI *ai, int event);
 void changeMachineState(struct RoboAI *ai, int new_state);
-void handleStateActions(struct RoboAI *ai); // Returns 1 if we want to asynchronously shoot
+void handleStateActions(struct RoboAI *ai, struct blob *blobs); // Returns 1 if we want to asynchronously shoot
 void handleShootingMechanism(struct RoboAI *ai);
 int get_curr_motor_power(int port_id);
 
