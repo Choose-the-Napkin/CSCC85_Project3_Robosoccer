@@ -1397,6 +1397,20 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
   }else if (dist < 300){
     pushPower = 75;
   }
+/*
+struct coord oldValues[4][5]; 
+int numValidValues[4] = {0, 0, 0, 0};
+*/
+  if (numValidValues[1] >= 2){
+    // Calculate d_err
+    double old_dist = distance_between_points(oldValues[1][1], goal);
+    double d_err = dist - old_dist;
+    double effect = d_err;
+    printf("EFFECT IS %f\n", effect);
+    if (effect > 0) effect = 0;
+    if (effect < -10) effect = -10;
+    pushPower += effect;
+  }
 
   double abs_curve = fabs(curvePower);
   if (abs_curve >= 30 && abs_curve < 40){ // just spin, we face the wrong way
@@ -1546,7 +1560,7 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
     } else{
         if (state == STATE_S_curveToBall){
           if (robustBallCx != -1000){
-            struct coord location = calc_in_front_of_ball(ai, -ALIGN_OFFSET, new_coords(robustSelfCx, robustSelfCy));
+            struct coord location = calc_in_front_of_ball(ai, -ALIGN_OFFSET*1.2, new_coords(robustSelfCx, robustSelfCy));
             wanted_posX = location.x;
             wanted_posY = location.y;
           }
@@ -1572,9 +1586,9 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
                 changeMachineState(ai, STATE_S_getBallInPouch);
               }else{
                //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
-                forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, 10, ai, blobs);
-                //motor_power_async(MOTOR_DRIVE_LEFT, power);
-                //motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
+                //forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, 10, ai, blobs);
+                motor_power_async(MOTOR_DRIVE_LEFT, power);
+                motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
               }
           }
           //handleAlignWithGivenOffset(ai, 0);
