@@ -1128,7 +1128,7 @@ void handleShootingMechanism(struct RoboAI *ai){
     fflush(stdout);
 
     // Keep pulling until not retract
-    BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 500);
+    BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 2000);
     lastAppliedToRetract = 0;
     BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
 
@@ -1140,10 +1140,10 @@ void handleShootingMechanism(struct RoboAI *ai){
       changeMachineState(ai, STATE_S_think);
     }
 
-    BT_motor_port_start(MOTOR_SHOOT_RETRACT, -70);
+    //BT_motor_port_start(MOTOR_SHOOT_RETRACT, -70);
     takeShot = 0;
-    hasBeenTouched = 3;
-    lastAppliedToRetract = 2;
+    //hasBeenTouched = 5;
+    //lastAppliedToRetract = 2;
 
   }else{ // Maintain retracted
     //printf("Maintaining shot\n");
@@ -1164,6 +1164,7 @@ void handleShootingMechanism(struct RoboAI *ai){
         lastAppliedToRetract = 1;
 
       }else if (hasBeenTouched > 0 && lastAppliedToRetract != 2){
+        BT_motor_port_start(MOTOR_SHOOT_RETRACT, -100);
         hasBeenTouched--;
 
       }
@@ -1294,7 +1295,7 @@ int checkEventActive(struct RoboAI *ai, int event){
       result = fabs(result_y - net.y) < 60;
 
     }else if (checkingEvent == EVENT_ballIsNotThatClose){
-      result = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 100;
+      result = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 75;
     
     }else if (checkingEvent == EVENT_noValidPath){
       result = calc_goal_with_obstacles(ai, new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy), 
@@ -1420,6 +1421,9 @@ void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int t
   // pause everything and get next frame to update readings
   motor_power_async(MOTOR_DRIVE_LEFT, 0);
   motor_power_async(MOTOR_DRIVE_RIGHT, 0);
+  lastAppliedToRetract = 0;
+  BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+
   BT_clear_gyro_sensor(GYRO_SENSOR_INPUT);
   track_agents(ai,blobs);
   fixAIHeadingDirection(ai);
@@ -1454,8 +1458,8 @@ void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int t
     if (units_moved < 0) powerToApply *= -1;
     if (robustSelfCx < target.x) powerToApply *= -1;
     
-    printf("OFFSET ANGLE from original: %f created Y-offset of %f so we apply %f\n", offsetAngle, fabs(result_y - target.y), powerToApply);
-    fflush(stdout);
+    //printf("OFFSET ANGLE from original: %f created Y-offset of %f so we apply %f\n", offsetAngle, fabs(result_y - target.y), powerToApply);
+    //fflush(stdout);
 
     int valid = 0;
     if (typeOfOffset == 1 && fabs(result_y - target.y) < acceptableOffset) valid = 1;
@@ -1464,9 +1468,10 @@ void forceAllignmentWithGyro(struct coord target, double acceptableOffset, int t
     if (valid || powerToApply == -lastDirApplied || fabs(offsetAngle) > 0.69){
       // we're now alligned (we may have overshot, but just stop anyways to catch the ball)
       if (lastDirApplied != 0){
+        printf("Countering..\n");
         // apply reverse for 50ms to catch
         motor_power_async(MOTOR_DRIVE_LEFT, -lastDirApplied);
-        BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, lastDirApplied, 50);
+        BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, lastDirApplied, 75);
         motor_power_async(MOTOR_DRIVE_LEFT, 0);
         motor_power_async(MOTOR_DRIVE_RIGHT, 0);
 
@@ -1564,12 +1569,12 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
               if (power >= 30){
                 driftingInPouch = 0;
                 fflush(stdout);
-                changeMachineState(ai, STATE_S_OrientBallandShoot);
+                changeMachineState(ai, STATE_S_getBallInPouch);
               }else{
                //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
-                //forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, 15, ai, blobs);
-                motor_power_async(MOTOR_DRIVE_LEFT, power);
-                motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
+                forceAllignmentWithGyro(new_coords(wanted_posX, wanted_posY), getExpectedUnitCircleDistance(PI/40), 2, 10, ai, blobs);
+                //motor_power_async(MOTOR_DRIVE_LEFT, power);
+                //motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
               }
           }
           //handleAlignWithGivenOffset(ai, 0);
@@ -1639,9 +1644,9 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
           }else{
             // figure out which dir to turn
             printf("FORCING NET ALIGNMENT\n");
-            forceAllignmentWithGyro(getNet(ai->st.side), 30, 1, 15, ai, blobs);
-            changeMachineState(ai, STATE_S_getBallInPouch);
-            //driftingInPouch = 0;
+            forceAllignmentWithGyro(getNet(ai->st.side), 30, 1, 12, ai, blobs);
+            //changeMachineState(ai, STATE_S_getBallInPouch);
+            driftingInPouch = 0;
           }
         }
         
