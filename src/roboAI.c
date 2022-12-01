@@ -1724,7 +1724,7 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
   struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
   struct coord intersect = vector_intersect(position, obstacle, norm_heading);
   double intersect_to_goal_ratio = vector_distance(intersect, position) / vector_distance(goal, position);
-  double min_intersect_to_goal_ratio = (vector_distance(scale_coords(norm_heading, self_radius), position)/vector_distance(goal, position));
+  double min_intersect_to_goal_ratio = self_radius/vector_distance(goal, position);
   ai->DPhead = addPoint(ai->DPhead, intersect.x, intersect.y, 160, 32, 240);
 
   if (intersect_to_goal_ratio <= 1 && intersect_to_goal_ratio > min_intersect_to_goal_ratio && vector_distance(intersect, obstacle) < self_radius + obstacle_radius + buffer) {
