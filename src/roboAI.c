@@ -820,19 +820,29 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     } else{ 
       // TODO: Add initial movement stage to verify heading before potentially doing a 180 flip
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall; //STATE_S_curveToShootingPosition;
+      TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_think][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
       // TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_think;
-      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;//STATE_S_alignRobotToShoot;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
+      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_driveToDiversion;
+
+      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithDiversion;
+      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_think;
 
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_allignedWithPosition* 2 + 1] = STATE_S_getBallInPouch;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_distanceToBallIncreasing* 2 + 1] = STATE_S_think;
 
-
-      //TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballIsNotThatClose* 2 + 1] = STATE_S_curveToBall;
       // TODO: Check that we are making progress with the ball 
       TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_allignedWithPosition * 2 + 0] = STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_atWantedPosition * 2 + 1] = STATE_S_OrientBallandShoot;
@@ -1280,7 +1290,17 @@ int checkEventActive(struct RoboAI *ai, int event){
       result = fabs(result_y - net.y) < 60;
 
     }else if (checkingEvent == EVENT_ballIsNotThatClose){
-      return pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 100;
+      result = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5) > 100;
+    
+    }else if (checkingEvent == EVENT_noValidPath){
+      result = calc_goal_with_obstacles(ai, new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy), 
+                              new_coords(robustEnemyCx, robustEnemyCy), 75, 75, 150).x == -1;
+      
+    }else if (checkingEvent == EVENT_pathObstructed){
+      struct coord given = calc_goal_with_obstacles(ai, new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy), 
+                            new_coords(robustEnemyCx, robustEnemyCy), 75, 75, 150);
+      result = given.x != robustBallCx || given.y != robustBallCy;   
+      printf("ball %f %f suggested %f %f so result is %d\n", robustBallCx, robustBallCy, given.x, given.y, result);  
     }
 
     return (result == wantedResult);
@@ -1292,17 +1312,23 @@ void changeMachineState(struct RoboAI *ai, int new_state){
     fflush(stdout);
 
     ai->st.state = new_state;
-    if (new_state == STATE_P_driveToOffset || new_state == STATE_P_driveCarefullyUntilShot || new_state == STATE_S_getBallInPouch || new_state == STATE_S_creepSlowlyToBall){
+    if (new_state == STATE_P_driveToOffset || new_state == STATE_P_driveCarefullyUntilShot || new_state == STATE_S_getBallInPouch || 
+      new_state == STATE_S_creepSlowlyToBall || new_state == STATE_S_driveToDiversion){
+
       lastDrivingPosition = new_coords(ai->st.old_scx, ai->st.old_scy);
       wrong_path_beleif = 0; // Give us a new iterations to fix up the velocity calculations
+
+      //if (new_state == STATE_S_driveToDiversion) thresholdStrictness = PI/10;
     }else{
       thresholdStrictness = PI/15;
     }
 
-    if (new_state == STATE_P_alignWithBall || new_state == STATE_P_alignWithOffset || new_state == STATE_S_alignRobotToShoot || STATE_S_alignWithBallBeforeCreep || new_state == STATE_S_OrientBallandShoot ){
+    if (new_state == STATE_P_alignWithBall || new_state == STATE_P_alignWithOffset || new_state == STATE_S_alignRobotToShoot || 
+      STATE_S_alignWithBallBeforeCreep || new_state == STATE_S_OrientBallandShoot || new_state == STATE_S_alignWithDiversion ){
         wanted_posX = -1;
         wanted_posY = -1;
-        if (new_state == STATE_S_alignRobotToShoot || new_state == STATE_P_alignWithBall) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
+        if (new_state == STATE_S_alignRobotToShoot || new_state == STATE_P_alignWithBall || new_state == STATE_S_alignWithDiversion) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
+        else thresholdStrictness = PI/20;
     }
     
     if (new_state == STATE_S_curveToInterceptBall){
@@ -1354,8 +1380,7 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
 void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_wanted){
   struct coord self = new_coords(robustSelfCx, robustSelfCy);
   struct coord opponent = new_coords(robustEnemyCx, robustEnemyCy);
-  struct coord original_goal = new_coords(wanted_posX, wanted_posY);
-  struct coord goal = calc_goal_with_obstacles(ai, self, original_goal, opponent, 150, 150, 50);
+  struct coord goal = new_coords(wanted_posX, wanted_posY);
 
   // TODO: add backwards movement instead of
   double curvePower = getPowerNeededToAlign(ai, goal.x, goal.y, allow_backwards_into_wanted);
@@ -1485,7 +1510,6 @@ void handleStateActions(struct RoboAI *ai){
               wanted_posY = location.y;
             }
 
-            // Drive at 0.35
           if (wanted_posX != -1 && wanted_posY != -1){
               double dist = pow(pow(robustSelfCx - wanted_posX, 2) + pow(robustSelfCy - wanted_posY, 2), 0.5);
               double powerApplied = dist*35/500.0;
@@ -1547,6 +1571,21 @@ void handleStateActions(struct RoboAI *ai){
               }
           }
           //handleAlignWithGivenOffset(ai, 0);
+
+        }else if (state == STATE_S_alignWithDiversion){
+          struct coord given = calc_goal_with_obstacles(ai, new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy), 
+                            new_coords(robustEnemyCx, robustEnemyCy), 75, 75, 150);
+
+          wanted_posX = given.x;
+          wanted_posY = given.y;
+          double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
+          motor_power_async(MOTOR_DRIVE_LEFT, power);
+          motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
+          wrong_path_beleif = 0;
+
+        }else if (state == STATE_S_driveToDiversion){
+          motor_power_async(MOTOR_DRIVE_LEFT, 20);
+          motor_power_async(MOTOR_DRIVE_RIGHT, 20); 
 
         }else if (state == STATE_S_alignWithBallBeforeCreep){
           // TODO: add some interesting checkers so we dont turn into scoring a goal on ourselves (as this is called after reaching goalie)
@@ -1616,32 +1655,6 @@ void handleStateActions(struct RoboAI *ai){
           }
           
         }
-        
-        
-        /*else if (state == STATE_S_runAtBallAndShoot){
-          wanted_posX = robustBallCx;calc_goal_with_obstacles
-          wanted_posY = robustBallCy;
-
-          struct coord net = getNet(ai->st.side);
-          double curvePowerToNet = getPowerNeededToAlign(ai, net.x, net.y);
-          double curvePower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY);
-
-          double ourDistToBall = pow(pow(robustSelfCx - robustBallCx, 2) + pow(robustSelfCy - robustBallCy, 2), 0.5);
-          printf("DISTANCE TO BALL CHECK %f\n", ourDistToBall);
-
-          || ballWasSeenInPouch && ourDistToBall < 120){
-            // The ball is likely inside of our netcalc_goal_with_obstacles
-            ballWasSeenInPouch = 1;
-
-            
-            
-          }else{
-            ballWasSeenInPouch = 0;
-            driftingInPouch = 0;
-            // No shots to be made, just get closer to the ball
-            
-          }
-          */
       
     }
 } 
@@ -1690,7 +1703,7 @@ double vector_distance(struct coord a, struct coord b) {
 }
 
 struct coord vector_invert(struct coord v) {
-  return new_coords(v.y, v.x);
+  return new_coords(v.y, -v.x);
 }
 
 int coord_near_wall(struct coord c, double distance) {
@@ -1703,12 +1716,17 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
   struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
   struct coord intersect = vector_intersect(position, obstacle, norm_heading);
   double intersect_to_goal_ratio = vector_distance(intersect, position) / vector_distance(goal, position);
-  if (intersect_to_goal_ratio <= 1 && intersect_to_goal_ratio > 0 && vector_distance(goal, intersect) < vector_distance(position, intersect) && vector_distance(intersect, obstacle) < self_radius + obstacle_radius + buffer) {
+  double min_intersect_to_goal_ratio = (vector_distance(scale_coords(norm_heading, self_radius), goal)/vector_distance(goal, position));
+  ai->DPhead = addPoint(ai->DPhead, intersect.x, intersect.y, 160, 32, 240);
+
+  if (intersect_to_goal_ratio <= 1 && intersect_to_goal_ratio > min_intersect_to_goal_ratio && vector_distance(intersect, obstacle) < self_radius + obstacle_radius + buffer) {
     // Obstacle is in the way
     struct coord offset_1, offset_2; //  Left and right of obstacle on 
     offset_1 = add_coords(obstacle, scale_coords(vector_invert(norm_heading), self_radius+obstacle_radius+buffer)); // Buffer adds more distance between circles
     offset_2 = add_coords(obstacle, scale_coords(vector_invert(norm_heading), -(self_radius+obstacle_radius+buffer)));
-    if (coord_near_wall(offset_1, self_radius)) {
+    if (coord_near_wall(offset_1, self_radius) && coord_near_wall(offset_2, self_radius)) {
+      returned_goal = new_coords(-1, -1);
+    } else if (coord_near_wall(offset_1, self_radius)) {
       returned_goal = offset_2;
     } else if (coord_near_wall(offset_2, self_radius)) {
       returned_goal = offset_1;
@@ -1718,12 +1736,14 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
       returned_goal = offset_2;
     }
     ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
+    return returned_goal;
   } else {
     returned_goal = goal;
     ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 255, 255);
+    return returned_goal;
   }
 
-  printf("Nothing in the way, original %f %f, goal %f %f\n", goal.x, goal.y, returned_goal.x, returned_goal.y);
+  //printf("Nothing in the way, original %f %f, goal %f %f\n", goal.x, goal.y, returned_goal.x, returned_goal.y);
   //ai->DPhead = addPoint(ai->DPhead, returned_goal.x, returned_goal.y, 255, 127, 80);
   return returned_goal;
 }
@@ -1732,8 +1752,8 @@ struct coord vector_intersect(struct coord ac, struct coord bc, struct coord s) 
   // A is us and B is the obstacle
   // But they are exchangeable
   double r; // variable in r(s) + ac line
-  double det = (s.y*s.y) - (s.x*s.x);
-  r = -(s.x*(bc.x-ac.x)+s.y*(bc.y-ac.y))/det;
+  double det = (s.y*s.y) + (s.x*s.x);
+  r = (s.x*(bc.x-ac.x)+s.y*(bc.y-ac.y))/det;
   return add_coords(scale_coords(s, r), ac);
 }
 
@@ -1757,8 +1777,8 @@ struct coord calc_in_front_of_ball(struct RoboAI *ai, double distanceOffset, str
   netvec.y = net.y - robustBallCy;
 
   struct coord res = add_coords(new_coords(robustBallCx, robustBallCy), scale_coords(normalize_vector(netvec), distanceOffset));
-  ai->DPhead = addPoint(ai->DPhead, res.x, res.y, 0, 255, 0);
-  printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
+  ai->DPhead = addPoint(ai->DPhead, res.x, res.y, 0, 224055, 0);
+ // printf("Calculated ball offset from %f,%f to be %f,%f\n", ai->st.ball->cx, ai->st.ball->cy, res.x, res.y);
   //fflush(stdout);
   return res;
 }

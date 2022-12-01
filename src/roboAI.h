@@ -52,8 +52,11 @@
 // Attack states
 #define STATE_S_ATTACK 10
 #define STATE_S_curveToBall 15
-#define STATE_S_alignRobotToShoot 16
-#define STATE_S_getBallInPouch 17
+#define STATE_S_alignWithDiversion 16
+#define STATE_S_driveToDiversion 17
+
+#define STATE_S_alignRobotToShoot 18
+#define STATE_S_getBallInPouch 19
 #define STATE_S_OrientBallandShoot 20
 
 // Defense states
@@ -75,7 +78,7 @@
 #define STATE_P_driveCarefullyUntilShot 105
 #define STATE_P_done 106
 
-#define NUMBER_OF_EVENTS 15
+#define NUMBER_OF_EVENTS 17
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
@@ -84,13 +87,16 @@
 #define EVENT_ballCagedAndCanShoot 5
 #define EVENT_robotIsStuckOnWall 6
 #define EVENT_robotIsStuckOnEnemy 7
-#define EVENT_weWinRaceToBall 8
-#define EVENT_ballDistanceIsStationary 9
-#define EVENT_distanceToBallIncreasing 10
-#define EVENT_alignedToScore 11
-#define EVENT_ballIsNotThatClose 12
-#define EVENT_bothRobotsCloseToBall 13
-#define EVENT_ballSeen 14
+#define EVENT_noValidPath 8
+#define EVENT_pathObstructed 9
+#define EVENT_weWinRaceToBall 10
+#define EVENT_ballDistanceIsStationary 11
+#define EVENT_distanceToBallIncreasing 12
+#define EVENT_alignedToScore 13
+#define EVENT_ballIsNotThatClose 14
+#define EVENT_bothRobotsCloseToBall 15
+#define EVENT_ballSeen 16
+
 // TODO: incorporate object detection somewhere
 
 
