@@ -47,6 +47,8 @@
 
 // Soccer states
 #define STATE_S_start 0
+
+//#define STATE_S_DEBUG 1
 #define STATE_S_KICKOFF 1
 #define STATE_S_think 5
 
@@ -82,7 +84,7 @@
 #define STATE_C_chase 201
 
 // Events!
-#define NUMBER_OF_EVENTS 17
+#define NUMBER_OF_EVENTS 18
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
@@ -100,6 +102,7 @@
 #define EVENT_ballIsNotThatClose 14
 #define EVENT_bothRobotsCloseToBall 15
 #define EVENT_ballSeen 16
+#define EVENT_ballIsProbablyOnSide 17
 
 // TODO: incorporate object detection somewhere
 
