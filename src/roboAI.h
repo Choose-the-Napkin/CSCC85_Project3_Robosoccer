@@ -47,17 +47,17 @@
 
 // Soccer states
 #define STATE_S_start 0
-#define STATE_S_think 1
+#define STATE_S_KICKOFF 1
+#define STATE_S_think 5
 
 // Attack states
 #define STATE_S_ATTACK 10
 #define STATE_S_curveToBall 15
-#define STATE_S_alignWithDiversion 16
+#define STATE_S_alignWithDiversion 16 // if we cant curve to ball direction and must first go to the side
 #define STATE_S_driveToDiversion 17
-
-#define STATE_S_alignRobotToShoot 18
+#define STATE_S_alignRobotToShoot 18 // we're at the ball, line up so we can drive into it
 #define STATE_S_getBallInPouch 19
-#define STATE_S_OrientBallandShoot 20
+#define STATE_S_OrientBallandShoot 20 // ball is in pouch, orient it then shoot
 
 // Defense states
 #define STATE_S_DEFEND 40
@@ -66,7 +66,7 @@
 #define STATE_S_creepSlowlyToBall 50
 
 // Stuck with enemy states
-#define STATE_S_FIGHT 60
+#define STATE_S_STUCK 60
 
 // Penalty states
 // Penalty tries to be very precise, drives straight
@@ -78,6 +78,10 @@
 #define STATE_P_driveCarefullyUntilShot 105
 #define STATE_P_done 106
 
+// chase state
+#define STATE_C_chase 201
+
+// Events!
 #define NUMBER_OF_EVENTS 17
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
@@ -91,7 +95,7 @@
 #define EVENT_pathObstructed 9
 #define EVENT_weWinRaceToBall 10
 #define EVENT_ballDistanceIsStationary 11
-#define EVENT_distanceToBallIncreasing 12
+#define EVENT_ballDistanceIsIncreasing 12
 #define EVENT_alignedToScore 13
 #define EVENT_ballIsNotThatClose 14
 #define EVENT_bothRobotsCloseToBall 15
