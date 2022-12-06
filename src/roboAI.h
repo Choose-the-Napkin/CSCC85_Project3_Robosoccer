@@ -41,15 +41,15 @@
 #define MOTOR_DRIVE_RIGHT MOTOR_B
 #define MOTOR_SHOOT_RETRACT MOTOR_D
 
-#define GYRO_SENSOR_INPUT PORT_1
-#define TOUCH_SENSOR_INPUT PORT_2
+#define TOUCH_SENSOR_INPUT PORT_1
 #define COLOUR_SENSOR_INPUT PORT_3
 
 // Soccer states
 #define STATE_S_start 0
 
 //#define STATE_S_DEBUG 1
-#define STATE_S_KICKOFF 1
+//#define STATE_S_INIT 1
+#define STATE_S_KICKOFF 1 //2
 #define STATE_S_think 5
 
 // Attack states
