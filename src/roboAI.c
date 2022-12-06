@@ -659,6 +659,7 @@ int numVeryHugeTurn;
 int driftingInPouch;
 int wrong_path_beleif;
 int unableToMoveBelief;
+int unableToTurnBelief;
 int takeShot;
 
 void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
@@ -823,6 +824,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     driftingInPouch = 0;
     wrong_path_beleif = 0;
     unableToMoveBelief = 0;
+    unableToTurnBelief = 0;
     takeShot = 0;
     oldCurvePower = -1000;
     initialBallPlacement = new_coords(-1000, -1000);
@@ -863,7 +865,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     } else{ 
       // start in kickoff mode then go into regular robosoccer loop
       TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballDistanceIsStationary* 2 + 1] = STATE_S_think;
-      TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_alignRobotToShoot;
+      TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_think;//STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_curveToInterceptBall; // something funny happened .. run back
 
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
@@ -897,7 +899,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballIsInCage * 2 + 1] = STATE_S_OrientBallandShoot;
 
       // ball got lost inside our pouch
-      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_think; 
+      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_curveToInterceptBall; 
       TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_alignRobotToShoot; 
 
 
@@ -1021,9 +1023,16 @@ void fixAIHeadingDirection(struct RoboAI *ai){
 
       if (unableToMoveBelief > 5){
         printf("REVERSING\n");
-        changeMachineState(ai, STATE_S_curveToInterceptBall);
+        motor_power_async(MOTOR_DRIVE_LEFT, -45);
+        BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, -45, 1500);
+        motor_power_async(MOTOR_DRIVE_LEFT, 0);
+        BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
+        motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
         unableToMoveBelief = 0;
         wrong_path_beleif = -2;
+        changeMachineState(ai, STATE_S_curveToInterceptBall);
+
+        //changeMachineState(ai, STATE_S_curveToInterceptBall);
         return;
       }
 
@@ -1213,7 +1222,7 @@ void handleShootingMechanism(struct RoboAI *ai){
       changeMachineState(ai, STATE_P_done);
 
     }else{
-      changeMachineState(ai, STATE_S_think);
+      changeMachineState(ai, STATE_S_curveToInterceptBall);
     }
 
     motor_power_async(MOTOR_SHOOT_RETRACT, 0);
@@ -1611,9 +1620,12 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
 
             if (ai->st.side == 0 && selfLoc.x > initialBallPlacement.x - 100 || 
                 ai->st.side == 1 && selfLoc.x < initialBallPlacement.x + 100){
-              //approachPower = 85;
+
+              double curvePower = getPowerNeededToAlign(ai, ballLoc.x, ballLoc.y, 1);
+              double curvePower2 = getPowerNeededToAlign(ai, targetNet.x, targetNet.y, 0);
               double dist = distance_between_points(new_coords(robustBallCx, robustBallCy), new_coords(robustSelfCx, robustSelfCy));
-              if (dist > 200){
+
+              if (fabs(curvePower) > 13 || fabs(curvePower2) > 13 || dist > 165){
                 printf("We think we missed at this point\n");
                 changeMachineState(ai, STATE_S_think);
                 return;
@@ -1621,8 +1633,9 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
               }else{
                 location = targetNet; //ballLoc;
                 allowStraight = 1;
-                printf("HEADING TO NET\n");
+                printf("HEADING TO NET %f %f %f \n", curvePower, curvePower2, dist);
               }
+              
 
             }else{
               struct coord offset_dir = normalize_vector(add_coords(targetNet, scale_coords(ballLoc, -1))); // curve into the offset
