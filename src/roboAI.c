@@ -868,20 +868,20 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_think][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      //TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
+      TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
-      //TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_driveToDiversion;
 
       TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithDiversion;
       TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_think;
 
@@ -1814,7 +1814,7 @@ struct coord calc_goal_with_obstacles(struct RoboAI *ai, struct coord position, 
   struct coord returned_goal;
   struct coord norm_heading = normalize_vector(new_coords(goal.x-position.x, goal.y-position.y));
   struct coord intersect = vector_intersect(position, obstacle, norm_heading);
-  double intersect_to_goal_ratio = vector_distance(intersect, position) / vector_distance(goal, position);
+  double intersect_to_goal_ratio = add_coords(intersect , scale_coords(position, -1)).x/add_coords(goal , scale_coords(position, -1)).x;
   double min_intersect_to_goal_ratio = self_radius/vector_distance(goal, position);
   ai->DPhead = addPoint(ai->DPhead, intersect.x, intersect.y, 160, 32, 240);
 
