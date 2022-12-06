@@ -874,7 +874,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       //TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
-      //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
+      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
       //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
       //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
@@ -899,7 +899,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_getBallInPouch][EVENT_ballIsInCage * 2 + 1] = STATE_S_OrientBallandShoot;
 
       // ball got lost inside our pouch
-      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_curveToInterceptBall; 
+      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_think; 
       TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_alignRobotToShoot; 
 
 
@@ -1030,7 +1030,7 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
         unableToMoveBelief = 0;
         wrong_path_beleif = -2;
-        changeMachineState(ai, STATE_S_curveToInterceptBall);
+        changeMachineState(ai, STATE_S_think);
 
         //changeMachineState(ai, STATE_S_curveToInterceptBall);
         return;
@@ -1326,15 +1326,15 @@ int checkEventActive(struct RoboAI *ai, int event){
       if (ai->st.state < STATE_S_DEFEND){ // attack modes, give us 150% confidence over them
         if (ai->st.side == 0 && robustSelfCx > robustBallCx + 50 || ai->st.side == 1 && robustSelfCx <  robustBallCx - 50) result = 0;
         else if (ourDistToBall < 250) result = 1;
-        else result = ourDistToBall < thierDistToBall * 1.5;
+        else result = ourDistToBall < thierDistToBall * 2;
 
       }else { // defense mode, make it more likely to stay in defense to avoid flip flops
-        result = ourDistToBall < thierDistToBall;
+        result = ourDistToBall < thierDistToBall * 1.5;
       }
 
       // TODO: add check for bull fight
      //printf("We win ball race: %d\n", result);
-      fflush(stdout);
+      //fflush(stdout);
       
     }else if (checkingEvent == EVENT_ballDistanceIsStationary){
         result = closingDistanceToBall == 0 && certaintyOfClosingDist >= 5;
@@ -1470,12 +1470,16 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
   int driveBackwards = origCP != curvePower;
 
   double dist = distance_between_points(self, goal);
+  //double basePower = maxPushPower*0.5;
   double pushPower = maxPushPower;
 
+
   if (dist < 200){
-      pushPower *= 0.6;
+    pushPower *= 0.6;
+    //basePower *=0.6;
   }else if (dist < 300){
     pushPower *= 0.75;
+    //basePower *=0.75;
   }
 
   if (numValidValues[1] >= 2){
@@ -1494,7 +1498,7 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
     abs_curve = 0;
   }
 
-  if (abs_curve >= 30 && abs_curve < 40){ // just spin, we face the wrong way
+  if (abs_curve >= 30){ // just spin, we face the wrong way
     motor_power_async(MOTOR_DRIVE_LEFT, curvePower);
     motor_power_async(MOTOR_DRIVE_RIGHT, -curvePower); 
 
