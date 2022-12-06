@@ -55,8 +55,7 @@
 // Attack states
 #define STATE_S_ATTACK 10
 #define STATE_S_curveToBall 15
-#define STATE_S_alignWithDiversion 16 // if we cant curve to ball direction and must first go to the side
-#define STATE_S_driveToDiversion 17
+
 #define STATE_S_alignRobotToShoot 18 // we're at the ball, line up so we can drive into it
 #define STATE_S_getBallInPouch 19
 #define STATE_S_OrientBallandShoot 20 // ball is in pouch, orient it then shoot

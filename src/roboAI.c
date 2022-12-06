@@ -867,23 +867,23 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
-      TRANSITION_TABLE[STATE_S_think][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
+      //TRANSITION_TABLE[STATE_S_think][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
-      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
+      //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
-      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
-      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_driveToDiversion;
+      //TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      //TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_alignWithDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_driveToDiversion;
 
-      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
-      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
-      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithDiversion;
-      TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_think;
+      //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_pathObstructed* 2 + 0] = STATE_S_curveToBall;
+      //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithDiversion;
+      //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_think;
 
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_allignedWithPosition* 2 + 1] = STATE_S_getBallInPouch;
@@ -1351,7 +1351,7 @@ void changeMachineState(struct RoboAI *ai, int new_state){
 
     ai->st.state = new_state;
     if (new_state == STATE_P_driveToOffset || new_state == STATE_P_driveCarefullyUntilShot || new_state == STATE_S_getBallInPouch || 
-      new_state == STATE_S_creepSlowlyToBall || new_state == STATE_S_driveToDiversion || new_state == STATE_S_curveToBall || new_state == STATE_S_curveToInterceptBall){
+      new_state == STATE_S_creepSlowlyToBall|| new_state == STATE_S_curveToBall || new_state == STATE_S_curveToInterceptBall){
 
       lastDrivingPosition = new_coords(robustSelfCx, robustSelfCy); //ai->st.old_scx, ai->st.old_scy);
       wrong_path_beleif = -2; // Give us a new iterations to fix up the velocity calculations
@@ -1361,10 +1361,10 @@ void changeMachineState(struct RoboAI *ai, int new_state){
     }
 
     if (new_state == STATE_P_alignWithBall || new_state == STATE_P_alignWithOffset || new_state == STATE_S_alignRobotToShoot || 
-      STATE_S_alignWithBallBeforeCreep || new_state == STATE_S_OrientBallandShoot || new_state == STATE_S_alignWithDiversion ){
+      STATE_S_alignWithBallBeforeCreep || new_state == STATE_S_OrientBallandShoot){
         wanted_posX = -1;
         wanted_posY = -1;
-        if (new_state == STATE_S_alignRobotToShoot || new_state == STATE_P_alignWithBall || new_state == STATE_S_alignWithDiversion) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
+        if (new_state == STATE_S_alignRobotToShoot || new_state == STATE_P_alignWithBall) thresholdStrictness = PI/30; // set tigher strictness for allignment to wanted position, as its relevant to shooting
         //else thresholdStrictness = PI/20;
     }
     
@@ -1652,22 +1652,6 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
               }
           }
           //handleAlignWithGivenOffset(ai, 0);
-
-        }else if (state == STATE_S_alignWithDiversion){
-          struct coord given = calc_goal_with_obstacles(ai, new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy), 
-                            new_coords(robustEnemyCx, robustEnemyCy), 75, 75, 150);
-
-          wanted_posX = given.x;
-          wanted_posY = given.y;
-          double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
-          motor_power_async(MOTOR_DRIVE_LEFT, power);
-          motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
-          wrong_path_beleif = 0;
-
-        }else if (state == STATE_S_driveToDiversion){
-          motor_power_async(MOTOR_DRIVE_LEFT, 20);
-          motor_power_async(MOTOR_DRIVE_RIGHT, 20); 
-
         }else if (state == STATE_S_alignWithBallBeforeCreep){
           // TODO: add some interesting checkers so we dont turn into scoring a goal on ourselves (as this is called after reaching goalie)
           handleAlignWithGivenOffset(ai, 0);
