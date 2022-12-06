@@ -1414,8 +1414,8 @@ void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
   if (wanted_posX != -1 && wanted_posY != -1){
       double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
      //printf("DECIDING TO LINE UP WITH POWER %f \n", power);
-      if (fabs(power) < 8){
-        power = 9 * power / fabs(power);
+      if (fabs(power) < 10){
+        power = 10 * power / fabs(power);
       }
       motor_power_async(MOTOR_DRIVE_LEFT, power);
       motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
@@ -1513,7 +1513,7 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
           if (wanted_posX != -1 && wanted_posY != -1){
               double dist = pow(pow(robustSelfCx - wanted_posX, 2) + pow(robustSelfCy - wanted_posY, 2), 0.5);
               double powerApplied = dist*35/500.0;
-              if (powerApplied < 12.5) powerApplied = 12.5;
+              if (powerApplied < 15) powerApplied = 15;
               if (powerApplied > 65) powerApplied = 65;
               motor_power_async(MOTOR_DRIVE_LEFT, powerApplied);
               motor_power_async(MOTOR_DRIVE_RIGHT, powerApplied);
@@ -1723,11 +1723,16 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
             if (fabs(curvePower) < 15 ) curvePower = 15 * curvePower / fabs(curvePower);
             double abs_curve = fabs(curvePower);
             
-            double powerR = 50;
-            double powerL = 50;
-            if (curvePower > 0) powerR = 50 - abs_curve;
-            else if (curvePower < 0) powerL = 50 - abs_curve;
-          
+            double powerR = 40;
+            double powerL = 40;
+            if (curvePower > 0){
+              powerR = 40 - abs_curve;
+              powerL = -powerR;
+              
+            }else{
+              powerL = 40 - abs_curve;
+              powerR = -powerL;
+            }
 
             motor_power_async(MOTOR_DRIVE_LEFT, powerL);
             motor_power_async(MOTOR_DRIVE_RIGHT, powerR); 
