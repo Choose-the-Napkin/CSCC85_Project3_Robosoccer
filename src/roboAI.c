@@ -1021,7 +1021,7 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         unableToMoveBelief = 0;
       }
 
-      if (unableToMoveBelief > 5){
+      if (unableToMoveBelief > 5 && ai->st.state < 100){
         printf("REVERSING\n");
         motor_power_async(MOTOR_DRIVE_LEFT, -45);
         BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, -45, 1500);
@@ -1030,13 +1030,34 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
         unableToMoveBelief = 0;
         wrong_path_beleif = -2;
-        changeMachineState(ai, STATE_S_think);
+        //changeMachineState(ai, (int)(ai->st.state/100) + 1);
 
-        //changeMachineState(ai, STATE_S_curveToInterceptBall);
+        changeMachineState(ai, STATE_S_curveToInterceptBall);
         return;
       }
 
       
+      if (isTurning && ai->st.state < 100){
+        unableToTurnBelief++;
+
+        if (unableToTurnBelief > 25){
+          printf("REVERSING\n");
+          motor_power_async(MOTOR_DRIVE_LEFT, -45);
+          BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, -45, 1500);
+          motor_power_async(MOTOR_DRIVE_LEFT, 0);
+          BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
+          motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
+          unableToTurnBelief = 0;
+          wrong_path_beleif = -2;
+          //changeMachineState(ai, (int)(ai->st.state/100) + 1);
+
+          changeMachineState(ai, STATE_S_curveToInterceptBall);
+          return;
+        }
+      }else{
+        unableToTurnBelief = 0;
+      }
+
       // Detect if we are actually going reverse of expected
       if (isDriving){ 
         double driveDir = 2 * (get_curr_motor_power(MOTOR_DRIVE_LEFT) > 0) - 1;
@@ -1438,6 +1459,8 @@ void changeMachineState(struct RoboAI *ai, int new_state){
 
     closingDistanceToBall = 2;
     certaintyOfClosingDist = 0;
+
+    unableToTurnBelief = 0;
 }
 
 void handleAlignWithGivenOffset(struct RoboAI *ai, double offset){
