@@ -1537,7 +1537,7 @@ void handleCurveToGivenLocation(struct RoboAI* ai, int allow_backwards_into_want
     if (oldCurvePower != -1000){
       // Calculate d_err for turning power
       double rotate_err_d = curvePower - oldCurvePower;
-      double effect = rotate_err_d * 0.5;        // DER VALUE FOR ROTATION
+      double effect = rotate_err_d;        // DER VALUE FOR ROTATION
       printf("ROTATE EFFECT IS %f, original curve by %f \n", effect, abs_curve);
       abs_curve += effect;
     }
