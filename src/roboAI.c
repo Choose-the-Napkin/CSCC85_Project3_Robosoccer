@@ -1051,7 +1051,7 @@ void fixAIHeadingDirection(struct RoboAI *ai){
           wrong_path_beleif = -2;
           //changeMachineState(ai, (int)(ai->st.state/100) + 1);
 
-          changeMachineState(ai, STATE_S_curveToInterceptBall);
+          changeMachineState(ai, STATE_S_think);
           return;
         }
       }else{
