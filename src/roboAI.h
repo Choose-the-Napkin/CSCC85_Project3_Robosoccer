@@ -48,8 +48,8 @@
 #define STATE_S_start 0
 
 //#define STATE_S_DEBUG 1
-//#define STATE_S_INIT 1
-#define STATE_S_KICKOFF 1 //2
+#define STATE_S_INIT 1
+#define STATE_S_KICKOFF 2//1 //2
 #define STATE_S_think 5
 
 // Attack states

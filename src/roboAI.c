@@ -658,6 +658,7 @@ double thresholdStrictness;
 int numVeryHugeTurn;
 int driftingInPouch;
 int wrong_path_beleif;
+int unableToMoveBelief;
 int takeShot;
 
 void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
@@ -821,6 +822,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
     numVeryHugeTurn = 0;
     driftingInPouch = 0;
     wrong_path_beleif = 0;
+    unableToMoveBelief = 0;
     takeShot = 0;
     oldCurvePower = -1000;
     initialBallPlacement = new_coords(-1000, -1000);
@@ -863,7 +865,6 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballDistanceIsStationary* 2 + 1] = STATE_S_think;
       TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_alignRobotToShoot;
       TRANSITION_TABLE[STATE_S_KICKOFF][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_curveToInterceptBall; // something funny happened .. run back
-      // EVENT_ballIsProbablyOnSide
 
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_think][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
@@ -871,7 +872,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       //TRANSITION_TABLE[STATE_S_think][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
 
       // Attack states
-      TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_curveToBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignRobotToShoot;
       //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_noValidPath* 2 + 1] = STATE_S_curveToInterceptBall;
       //TRANSITION_TABLE[STATE_S_curveToBall][EVENT_pathObstructed* 2 + 1] = STATE_S_alignWithDiversion;
@@ -897,7 +898,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
 
       // ball got lost inside our pouch
       TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_think; 
-      // TODO: Check if dist is stationary during shoot mode and assume ball is on our side!
+      TRANSITION_TABLE[STATE_S_OrientBallandShoot][EVENT_ballIsProbablyOnSide* 2 + 1] = STATE_S_alignRobotToShoot; 
 
 
       // STATE_S_runAtBallAndShoot will automatically curve to ball and go back to think after making a shot
@@ -905,14 +906,14 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       //TRANSITION_TABLE[STATE_S_runAtBallAndShoot][EVENT_ballIsNotThatClose * 2 + 1] = STATE_S_think;
 
       // Defense states
-      TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
+      //TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_curveToInterceptBall][EVENT_atWantedPosition* 2 + 1] = STATE_S_alignWithBallBeforeCreep;
 
       // Reorient
       TRANSITION_TABLE[STATE_S_alignWithBallBeforeCreep][EVENT_allignedWithPosition* 2 + 1] = STATE_S_creepSlowlyToBall;
 
       // creep state aligns and moves forward;
-      TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_alignRobotToShoot;
+      //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithBallBeforeCreep;
       // TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_ballMoving* 2 + 1] = STATE_S_think;
     } 
@@ -1008,6 +1009,28 @@ void fixAIHeadingDirection(struct RoboAI *ai){
         numVeryHugeTurn = 0;
       }
       
+      // detect obstacles in our objective
+      if (isDriving && distance_between_points(new_coords(ai->st.self->cx, ai->st.self->cy), lastDrivingPosition) <= 5
+        && (ai->st.state < 100 ||ai->st.state >= 200 )){ // dont detect slow penalty movements are stuck
+        printf("CANNOT DRIVE?\n");
+        unableToMoveBelief++;
+        
+      }else if (isDriving){
+        unableToMoveBelief = 0;
+      }
+
+      if (unableToMoveBelief > 5){
+        printf("REVERSING\n");
+        motor_power_async(MOTOR_DRIVE_LEFT, -45);
+        BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, -45, 1500);
+        motor_power_async(MOTOR_DRIVE_LEFT, 0);
+        BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
+        motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
+        unableToMoveBelief = 0;
+        wrong_path_beleif = -2;
+        changeMachineState(ai, STATE_S_think);
+        return;
+      }
 
       
       // Detect if we are actually going reverse of expected
@@ -1176,9 +1199,15 @@ void handleShootingMechanism(struct RoboAI *ai){
     printf("Taking shot\n");
     fflush(stdout);
 
+    BT_motor_port_stop(MOTOR_DRIVE_LEFT, 0);
+    BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
+
     // Keep pulling until not retract
     BT_timed_motor_port_start_v2(MOTOR_SHOOT_RETRACT, -100, 500);
     BT_motor_port_stop(MOTOR_SHOOT_RETRACT, 0);
+
+    motor_power_async(MOTOR_DRIVE_LEFT, 0);
+    motor_power_async(MOTOR_DRIVE_RIGHT, 0);
 
     if (ai->st.state >= 200){
       // wait extra before chasing again
@@ -1257,7 +1286,8 @@ int checkEventActive(struct RoboAI *ai, int event){
     }else if (checkingEvent == EVENT_allignedWithPosition){
         double neededPower = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
         result = fabs(neededPower) < 8.0;
-        if (ai->st.state == STATE_S_getBallInPouch && neededPower > 20){ // when we're close enough that it might get wonky
+        if (ai->st.state == STATE_S_getBallInPouch && neededPower > 20 && 
+            distance_between_points(new_coords(robustSelfCx, robustSelfCy), new_coords(robustBallCx, robustBallCy)) < 150 ){ // when we're close enough that it might get wonky
           result = 1;
         }
         
@@ -1528,11 +1558,26 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
             wanted_posY = robustBallCy;
 
             if (checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1)){
-                takeShot = 1;
+                if (checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1)){
+                  motor_power_async(MOTOR_DRIVE_LEFT, 17);
+                  motor_power_async(MOTOR_DRIVE_RIGHT, 17);
+                  takeShot = 1;
+
+                }else{
+                  struct coord netLoc = getNet(ai->st.side);
+                  double curvePower = getPowerNeededToAlign(ai, netLoc.x, netLoc.y, 0) ;
+                  curvePower = 15 * curvePower / fabs(curvePower);
+
+                  motor_power_async(MOTOR_DRIVE_LEFT, curvePower);
+                  motor_power_async(MOTOR_DRIVE_RIGHT, -curvePower); 
+                }
+                
+            }else{
+              motor_power_async(MOTOR_DRIVE_LEFT, 17);
+              motor_power_async(MOTOR_DRIVE_RIGHT, 17);
+
             }
 
-            motor_power_async(MOTOR_DRIVE_LEFT, 17);
-            motor_power_async(MOTOR_DRIVE_RIGHT, 17);
         }
 
     } else{
@@ -1542,34 +1587,14 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
           int seen = checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1);
           printf("Dist to ball: %f, angle to ball: %f, seen: %d\n", dist, angle, seen);
           
-        } 
+        } */
         if (state == STATE_S_INIT){
           // quick check to see if our kickoff curve can reach
-          changeMachineState(ai, STATE_S_KICKOFF);
+          changeMachineState(ai, STATE_S_curveToInterceptBall);
           return;
 
-
-          if (robustSelfCx != -1000 && robustBallCx != -1000){
-            double units_moved = (robustBallCy - robustSelfCy) / robustHeadingY;
-            double landed = robustSelfCx + robustHeadingX * units_moved;
-            double averageX = (robustSelfCx + robustBallCx)/2;
-
-            if (ai->st.side == 0 && landed > robustSelfCx - 150 && landed < averageX || 
-                ai->st.side == 1 && landed < robustSelfCx + 150 && landed > averageX ){
-              printf("Lines up okay, we landed on %f instead of %f due to %f %f\n", landed, averageX, robustSelfCx, robustBallCx);
-              changeMachineState(ai, STATE_S_KICKOFF);
-
-            }else{
-              wanted_posX = averageX;
-              wanted_posY = robustBallCy;
-              double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
-              
-              motor_power_async(MOTOR_DRIVE_LEFT, power * 1.5);
-              motor_power_async(MOTOR_DRIVE_RIGHT, -power * 1.5); 
-            }
-          }
         }
-        else*/ if (state == STATE_S_KICKOFF ){
+        else if (state == STATE_S_KICKOFF ){
           thresholdStrictness = PI/30;
           int allowStraight = 0;
 
@@ -1588,9 +1613,17 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
             if (ai->st.side == 0 && selfLoc.x > initialBallPlacement.x - 100 || 
                 ai->st.side == 1 && selfLoc.x < initialBallPlacement.x + 100){
               //approachPower = 85;
-              location = targetNet; //ballLoc;
-              allowStraight = 1;
-              //printf("HEADING TO NET\n");
+              double dist = distance_between_points(new_coords(robustBallCx, robustBallCy), new_coords(robustSelfCx, robustSelfCy));
+              if (dist > 200){
+                printf("We think we missed at this point\n");
+                changeMachineState(ai, STATE_S_think);
+                return;
+
+              }else{
+                location = targetNet; //ballLoc;
+                allowStraight = 1;
+                printf("HEADING TO NET\n");
+              }
 
             }else{
               struct coord offset_dir = normalize_vector(add_coords(targetNet, scale_coords(ballLoc, -1))); // curve into the offset
@@ -1641,15 +1674,15 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
           if (wanted_posX != -1 && wanted_posY != -1){
               double power = getPowerNeededToAlign(ai, wanted_posX, wanted_posY, 0);
               if (fabs(power) < 9 ) power = 9 * power / fabs(power);
-              
+              /*
               if (fabs(power) >= 30){
                 driftingInPouch = 0;
                 changeMachineState(ai, STATE_S_getBallInPouch);
-              }else{
+              }else{*/
                 printf("DECIDING TO LINE UP WITH POWER %f \n", power);
                 motor_power_async(MOTOR_DRIVE_LEFT, power);
                 motor_power_async(MOTOR_DRIVE_RIGHT, -power); 
-              }
+              //}
           }
           //handleAlignWithGivenOffset(ai, 0);
         }else if (state == STATE_S_alignWithBallBeforeCreep){
@@ -1668,16 +1701,30 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
           wanted_posY = robustBallCy;
           struct coord net = getNet(ai->st.side);
 
+          if (oldCurvePower != -1000){
+            double curvePower = getPowerNeededToAlign(ai, net.x, net.y, 0) * 2;
+
+            if (checkEventActive(ai, EVENT_alignedToScore *2 + 1) || (oldCurvePower / fabs(oldCurvePower) != curvePower / fabs(curvePower))){
+              // signs flipped, counter turn to catch ball
+              motor_power_async(MOTOR_DRIVE_LEFT, -oldCurvePower);
+              BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, oldCurvePower, 100);
+              motor_power_async(MOTOR_DRIVE_LEFT, 0);
+              BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
+              motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
+              oldCurvePower = -1000;
+            }
+          }
+
           if (checkEventActive(ai, EVENT_alignedToScore *2 + 1)){
             // We are probably lined up to score
             
             if (checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1)){
               // the ball is definitely ready to be shot, and we already checked that it'll probably make the shot
 
-              printf("TAKE THE SHOT %d %d!!\n", checkEventActive(ai, EVENT_alignedToScore *2 + 1));
+              printf("TAKE THE SHOT %d!!\n", checkEventActive(ai, EVENT_alignedToScore *2 + 1));
               fflush(stdout);
-              motor_power_async(MOTOR_DRIVE_LEFT, 0);
-              motor_power_async(MOTOR_DRIVE_RIGHT, 0);
+              //motor_power_async(MOTOR_DRIVE_LEFT, 0);
+              //motor_power_async(MOTOR_DRIVE_RIGHT, 0);
               takeShot = 1;
               //ballWasSeenInPouch = 0;
 
@@ -1689,37 +1736,18 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
               takeShot = 0;
               driftingInPouch++;
 
-              /*
-              if (driftingInPouch >= 5 && checkEventActive(ai, EVENT_ballDistanceIsStationary * 2 + 1) && checkEventActive(ai, EVENT_shootingMechanismRetracted * 2 + 1)){
-                printf("BALL IS ON SIDE?\n");
-                driftingInPouch = 0;
-                changeMachineState(ai, STATE_S_think); // figure out whats going on
-              }
-              */
             }
 
           }else{
             // figure out which dir to turn
             printf("Aligning ball for shot\n");
-            struct coord netLoc = getNet(ai->st.side);
-            double curvePower = getPowerNeededToAlign(ai, netLoc.x, netLoc.y, 0);
+            double curvePower = getPowerNeededToAlign(ai, net.x, net.y, 0);
 
-            if (fabs(curvePower) < 15 ) curvePower = 15 * curvePower / fabs(curvePower);
-            double abs_curve = fabs(curvePower);
-            
-            double powerR = 40;
-            double powerL = 40;
-            if (curvePower > 0){
-              powerR = 40 - abs_curve;
-              powerL = -powerR;
-              
-            }else{
-              powerL = 40 - abs_curve;
-              powerR = -powerL;
-            }
+            curvePower = 12 * curvePower / fabs(curvePower);
 
-            motor_power_async(MOTOR_DRIVE_LEFT, powerL);
-            motor_power_async(MOTOR_DRIVE_RIGHT, powerR); 
+            motor_power_async(MOTOR_DRIVE_LEFT, curvePower);
+            motor_power_async(MOTOR_DRIVE_RIGHT, -curvePower); 
+            oldCurvePower = curvePower;
 
             driftingInPouch = 0;
           }
@@ -1727,14 +1755,14 @@ void handleStateActions(struct RoboAI *ai, struct blob *blobs){
         
         else if (state == STATE_S_creepSlowlyToBall){
           if (robustBallCx != -1000){
-            struct coord location = calc_in_front_of_ball(ai, 0, getNet(ai->st.side));
-            wanted_posX = location.x;
-            wanted_posY = location.y;
+            //struct coord location = calc_in_front_of_ball(ai, 0, getNet(ai->st.side));
+            wanted_posX = robustBallCx;// location.x;
+            wanted_posY = robustBallCy;// location.y;
           }
 
           if (wanted_posX != -1 && wanted_posY != -1){
-              motor_power_async(MOTOR_DRIVE_LEFT, 20);
-              motor_power_async(MOTOR_DRIVE_RIGHT, 20);
+            motor_power_async(MOTOR_DRIVE_LEFT, 25);
+            motor_power_async(MOTOR_DRIVE_RIGHT, 25);
           }
           
         }
