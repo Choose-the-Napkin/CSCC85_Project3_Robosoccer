@@ -48,8 +48,8 @@
 #define STATE_S_start 0
 
 //#define STATE_S_DEBUG 1
-#define STATE_S_INIT 1
-#define STATE_S_KICKOFF 2//1 //2
+#define STATE_S_INIT 2//1
+#define STATE_S_KICKOFF 1 //2
 #define STATE_S_think 5
 
 // Attack states
@@ -83,7 +83,7 @@
 #define STATE_C_chase 201
 
 // Events!
-#define NUMBER_OF_EVENTS 18
+#define NUMBER_OF_EVENTS 19
 #define EVENT_carSeen 0
 #define EVENT_atWantedPosition 1
 #define EVENT_allignedWithPosition 2
@@ -102,6 +102,7 @@
 #define EVENT_bothRobotsCloseToBall 15
 #define EVENT_ballSeen 16
 #define EVENT_ballIsProbablyOnSide 17
+#define EVENT_driftedAwayFromNet 18
 
 // TODO: incorporate object detection somewhere
 

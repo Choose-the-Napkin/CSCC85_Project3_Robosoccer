@@ -886,7 +886,7 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithDiversion;
       //TRANSITION_TABLE[STATE_S_driveToDiversion][EVENT_allignedWithPosition* 2 + 1] = STATE_S_think;
 
-      TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
+      //TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_weWinRaceToBall* 2 + 0] = STATE_S_curveToInterceptBall;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_allignedWithPosition* 2 + 1] = STATE_S_getBallInPouch;
       TRANSITION_TABLE[STATE_S_alignRobotToShoot][EVENT_ballDistanceIsIncreasing* 2 + 1] = STATE_S_think;
 
@@ -913,9 +913,9 @@ void AI_main(struct RoboAI *ai, struct blob *blobs, void *state)
       TRANSITION_TABLE[STATE_S_alignWithBallBeforeCreep][EVENT_allignedWithPosition* 2 + 1] = STATE_S_creepSlowlyToBall;
 
       // creep state aligns and moves forward;
-      //TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
+      TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_weWinRaceToBall* 2 + 1] = STATE_S_curveToBall;
       TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_allignedWithPosition* 2 + 0] = STATE_S_alignWithBallBeforeCreep;
-      // TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_ballMoving* 2 + 1] = STATE_S_think;
+      TRANSITION_TABLE[STATE_S_creepSlowlyToBall][EVENT_driftedAwayFromNet* 2 + 1] = STATE_S_curveToBall;
     } 
 
   }
@@ -1021,14 +1021,9 @@ void fixAIHeadingDirection(struct RoboAI *ai){
 
       if (unableToMoveBelief > 5){
         printf("REVERSING\n");
-        motor_power_async(MOTOR_DRIVE_LEFT, -45);
-        BT_timed_motor_port_start_v2(MOTOR_DRIVE_RIGHT, -45, 1500);
-        motor_power_async(MOTOR_DRIVE_LEFT, 0);
-        BT_motor_port_stop(MOTOR_DRIVE_RIGHT, 0);
-        motor_power_async(MOTOR_DRIVE_RIGHT, 0); 
+        changeMachineState(ai, STATE_S_curveToInterceptBall);
         unableToMoveBelief = 0;
         wrong_path_beleif = -2;
-        changeMachineState(ai, STATE_S_think);
         return;
       }
 
@@ -1369,6 +1364,10 @@ int checkEventActive(struct RoboAI *ai, int event){
       int seen = checkEventActive(ai, EVENT_ballCagedAndCanShoot * 2 + 1);
       result = dist <= 140 && fabs(angle) > 8 && !seen;
       //printf("Dist to ball: %f, angle to ball: %f, seen: %d\n", dist, angle, seen);
+
+    }else if (checkingEvent == EVENT_driftedAwayFromNet){
+      struct coord ourNetLoc = getNet(1 - ai->st.side);
+      result = distance_between_points(new_coords(robustSelfCx, robustSelfCy), ourNetLoc) < 600;
     }
 
     return (result == wantedResult);
